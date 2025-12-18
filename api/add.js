@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
   await sql`
     INSERT INTO informations(device_id,p_name,ph_no,email,age,checkin_date,checkout_date)
-    VALUES(${device_id},${pname},${pmobile},${email},${age},${checkin_date},${checkout_date})
+    VALUES(${device_id},${pname},${pmobile},${email},${age},${chin},${chout})
   `;
 
   res.json({ success:true });
