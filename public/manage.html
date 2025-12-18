@@ -58,6 +58,8 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
   <input id="pmobile" placeholder="Mobile">
   <input id="email" placeholder="Email">
   <input id="age" placeholder="Age">
+  <input id="chin" placeholder="CheckIn Date" type="date">
+  <input id="chout" placeholder="CheckOut Date" type="date">
   <button onclick="addPatient()">Add</button>
   <button onclick="editPatient()"> Edit </button>
 </div>
@@ -66,7 +68,7 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 <thead>
 <tr>
 <th>ID</th><th>Device ID</th>
-<th>Patient Name</th><th>Mobile</th><th>Email</th><th>Age</th><th>Action</th>
+<th>Patient Name</th><th>Mobile</th><th>Email</th><th>Age</th><th>CheckIn Date</th><th>CheckOut Date</th><th>Action</th>
 </tr>
 </thead>
 <tbody id="rows"></tbody>
@@ -89,6 +91,8 @@ async function loadPatients(){
 <td>${r.ph_no}</td>
 <td>${r.email}</td>
 <td>${r.age}</td>
+<td>${r.checkin_date}</td>
+<td>${r.checkout_date}</td>
 <td>
 <button onclick="deletePatient(${r.id})">🗑 Delete</button>
 </td>
@@ -104,7 +108,10 @@ async function editPatient(){
     pname: document.getElementById('pname').value,
     pmobile: document.getElementById('pmobile').value,
     email:document.getElementById('email').value,
-age: Number(document.getElementById('age').value)
+    age: Number(document.getElementById('age').value),
+    chin: Date(document.getElementById('chin').value),
+    chout:Date (document.getElementById('chout').value)
+    
   };
 
   if(!body.device_id || !body.pname) {
@@ -131,7 +138,9 @@ async function addPatient(){
     pname: document.getElementById('pname').value,
     pmobile: document.getElementById('pmobile').value,
     email:document.getElementById('email').value,
-age: Number(document.getElementById('age').value)
+    age: Number(document.getElementById('age').value),
+    chin: Date(document.getElementById('chin').value),
+    chout:Date (document.getElementById('chout').value)
   };
 
   if(!body.device_id || !body.pname) {
@@ -172,6 +181,8 @@ function clearForm(){
   document.getElementById('pmobile').value = '';
   document.getElementById('email').value = '';
   document.getElementById('age').value = '';
+  document.getElementById('chin').value='';
+  document.getElementById('chout').value='';
 }
 
 loadPatients();
