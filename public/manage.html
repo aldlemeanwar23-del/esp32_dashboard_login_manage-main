@@ -110,7 +110,7 @@ async function editPatient(){
     email:document.getElementById('email').value,
     age: Number(document.getElementById('age').value),
     chin: Date(document.getElementById('chin').value),
-    chout:Date (document.getElementById('chout').value)
+    chout:Date(document.getElementById('chout').value)
     
   };
 
@@ -139,8 +139,8 @@ async function addPatient(){
     pmobile: document.getElementById('pmobile').value,
     email:document.getElementById('email').value,
     age: Number(document.getElementById('age').value),
-    chin: Date(document.getElementById('chin').value),
-    chout:Date (document.getElementById('chout').value)
+    chin:(document.getElementById('chin').value),
+    chout:(document.getElementById('chout').value)
   };
 
   if(!body.device_id || !body.pname) {
