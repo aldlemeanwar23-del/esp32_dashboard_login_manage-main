@@ -1,123 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
+<meta charset="UTF-8">
+<title>Dashboard | ESP32</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f1f5f9;
-        }
-
-        /* Top bar */
-        .top-bar {
-            background: #0f172a;
-            padding: 15px;
-            display: flex;
-            justify-content: flex-end;
-            gap: 15px;
-        }
-
-        .top-bar button {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .top-bar button:hover {
-            background: #1d4ed8;
-        }
-
-        /* Device grid */
-        .container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            padding: 30px;
-        }
-
-        .device-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-
-        .device-card h3 {
-            margin-top: 0;
-            color: #020617;
-        }
-
-        .device-card p {
-            margin: 8px 0;
-        }
-
-        .label {
-            font-weight: bold;
-            color: #334155;
-        }
-    </style>
+<style>
+body {
+  margin:0;
+  background:#0a0f1a;
+  color:#00ffff;
+  font-family:Segoe UI;
+}
+header {
+  padding:15px;
+  text-align:center;
+  font-size:22px;
+  box-shadow:0 0 15px cyan;
+}
+.cards {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:15px;
+  padding:20px;
+}
+.card {
+  background:rgba(0,0,0,.6);
+  padding:20px;
+  border-radius:14px;
+  box-shadow:0 0 20px rgba(0,255,255,.3);
+}
+.value {
+  font-size:40px;
+  text-align:center;
+}
+button {
+  margin:10px;
+  padding:10px 20px;
+  background:#00ffff;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:bold;
+}
+canvas { height:220px !important; }
+</style>
 </head>
 
 <body>
 
-<!-- Top buttons -->
-<div class="top-bar">
-    <button onclick="archive()">Archive</button>
-    <button onclick="patientManagement()">Patient Management</button>
-    <button onclick="logout()">Logout</button>
+<script>
+if(localStorage.getItem('auth')!=='1') location.href='/login.html';
+</script>
+
+<header>
+⚡ ESP32 Health Dashboard — Sensor <span id="sensorNo"></span>
+<button onclick="location.href='manage.html'">Manage Patients</button>
+</header>
+
+<div class="cards">
+  <div class="card">
+    <h3>Heart Rate</h3>
+    <div class="value" id="hr">-- BPM</div>
+  </div>
+  <div class="card">
+    <h3>SpO₂</h3>
+    <div class="value" id="spo">-- %</div>
+  </div>
 </div>
 
-<!-- Devices -->
-<div class="container">
-    <div class="device-card" id="sensor1"></div>
-    <div class="device-card" id="sensor2"></div>
-    <div class="device-card" id="sensor3"></div>
-    <div class="device-card" id="sensor4"></div>
+<div class="cards">
+  <div class="card">
+    <canvas id="hrChart"></canvas>
+  </div>
+  <div class="card">
+    <canvas id="spoChart"></canvas>
+  </div>
 </div>
 
 <script>
-    async function loadSensor(sensorId, elementId) {
-        try {
-            const response = await fetch(`/api/${sensorId}`);
-            const data = await response.json();
+/* =======================
+   Get sensor number
+   ======================= */
+const params = new URLSearchParams(window.location.search);
+const sensorNo = params.get('sensor') || 1; // default sensor 1
+document.getElementById('sensorNo').innerText = sensorNo;
 
-            document.getElementById(elementId).innerHTML = `
-                <h3>MAX30102 - ${sensorId.toUpperCase()}</h3>
-                <p><span class="label">Patient Name:</span> ${data.patient_name}</p>
-                <p><span class="label">Age:</span> ${data.age}</p>
-                <p><span class="label">Heart Rate:</span> ${data.heart_rate} bpm</p>
-                <p><span class="label">SpO₂:</span> ${data.spo2} %</p>
-            `;
-        } catch (error) {
-            document.getElementById(elementId).innerHTML =
-                `<h3>${sensorId}</h3><p>Error loading data</p>`;
-            console.error(error);
-        }
-    }
+/* =======================
+   Chart setup
+   ======================= */
+let labels = [], hrData = [], spoData = [];
 
-    function archive() {
-        alert("Archive clicked");
-    }
+const hrChart = new Chart(document.getElementById('hrChart'), {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Heart Rate',
+      data: hrData,
+      borderColor: '#00ffff',
+      fill: true
+    }]
+  }
+});
 
-    function patientManagement() {
-        alert("Patient Management clicked");
-    }
+const spoChart = new Chart(document.getElementById('spoChart'), {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [{
+      label: 'SpO₂',
+      data: spoData,
+      borderColor: '#ff00ff',
+      fill: true
+    }]
+  }
+});
 
-    function logout() {
-        window.location.href = "login.htm";
-    }
+/* =======================
+   Load data by sensor
+   ======================= */
+async function loadData(sensorNo) {
+  try {
+    const res = await fetch(`/api/get_sensor${sensorNo}`);
+    const data = await res.json();
+    if (!data.length) return;
 
-    // Load all sensors
-    loadSensor('sensor1', 'sensor1');
-    loadSensor('sensor2', 'sensor2');
-    loadSensor('sensor3', 'sensor3');
-    loadSensor('sensor4', 'sensor4');
+    labels.length = hrData.length = spoData.length = 0;
+
+    data.slice(-100).forEach(r => {
+      labels.push('');
+      hrData.push(r.heartrate);
+      spoData.push(r.spo2);
+    });
+
+    const last = data[data.length - 1];
+    document.getElementById('hr').innerText = last.heartrate + ' BPM';
+    document.getElementById('spo').innerText = last.spo2 + ' %';
+
+    hrChart.update();
+    spoChart.update();
+
+  } catch (err) {
+    console.error('Sensor fetch error:', err);
+  }
+}
+
+/* =======================
+   Auto refresh
+   ======================= */
+setInterval(() => loadData(sensorNo), 2000);
+loadData(sensorNo);
 </script>
 
 </body>
