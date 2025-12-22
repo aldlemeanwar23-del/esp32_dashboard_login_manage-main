@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   try {
     const rows = await sql`
       SELECT id,device_id,spo2,heartrate,time
-      FROM sensor_data
+      FROM max1_data
       ORDER BY time DESC
     `;
     res.json(rows.reverse());
