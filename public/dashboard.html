@@ -93,7 +93,7 @@ const spoChart=new Chart(spoChartCtx=document.getElementById('spoChart'),{
 });
 
 async function loadData(){
-  const res=await fetch('/api/get');
+  const res=await fetch('/api/get_sensor1');
   const data=await res.json();
   if(!data.length) return;
 
