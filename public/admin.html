@@ -6,15 +6,14 @@
 
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f8;
             margin: 0;
-            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
         }
 
         /* Top bar */
         .top-bar {
-            background: #1e293b;
+            background: #0f172a;
             padding: 15px;
             display: flex;
             justify-content: flex-end;
@@ -23,19 +22,18 @@
 
         .top-bar button {
             background: #2563eb;
-            border: none;
             color: white;
+            border: none;
             padding: 10px 18px;
-            cursor: pointer;
             border-radius: 4px;
-            font-size: 14px;
+            cursor: pointer;
         }
 
         .top-bar button:hover {
             background: #1d4ed8;
         }
 
-        /* Devices container */
+        /* Device grid */
         .container {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -43,22 +41,20 @@
             padding: 30px;
         }
 
-        /* Device layer */
         .device-card {
             background: white;
-            border-radius: 8px;
             padding: 20px;
+            border-radius: 8px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
 
         .device-card h3 {
             margin-top: 0;
-            color: #0f172a;
+            color: #020617;
         }
 
         .device-card p {
             margin: 8px 0;
-            font-size: 15px;
         }
 
         .label {
@@ -70,60 +66,58 @@
 
 <body>
 
-    <!-- Top buttons -->
-    <div class="top-bar">
-        <button onclick="archive()">Archive</button>
-        <button onclick="patientManagement()">Patient Management</button>
-        <button onclick="logout()">Logout</button>
-    </div>
+<!-- Top buttons -->
+<div class="top-bar">
+    <button onclick="archive()">Archive</button>
+    <button onclick="patientManagement()">Patient Management</button>
+    <button onclick="logout()">Logout</button>
+</div>
 
-    <!-- Devices -->
-    <div class="container" id="deviceContainer">
-        <!-- Device layers will be inserted here -->
-    </div>
+<!-- Devices -->
+<div class="container">
+    <div class="device-card" id="sensor1"></div>
+    <div class="device-card" id="sensor2"></div>
+    <div class="device-card" id="sensor3"></div>
+    <div class="device-card" id="sensor4"></div>
+</div>
 
 <script>
-    async function loadDevices() {
+    async function loadSensor(sensorId, elementId) {
         try {
-            const response = await fetch('/api/devices');
-            const devices = await response.json();
+            const response = await fetch(`/api/${sensorId}`);
+            const data = await response.json();
 
-            const container = document.getElementById('deviceContainer');
-            container.innerHTML = '';
-
-            devices.slice(0, 4).forEach((device, index) => {
-                const card = document.createElement('div');
-                card.className = 'device-card';
-
-                card.innerHTML = `
-                    <h3>MAX30102 Device ${index + 1}</h3>
-                    <p><span class="label">Patient Name:</span> ${device.patient_name}</p>
-                    <p><span class="label">Age:</span> ${device.age}</p>
-                    <p><span class="label">Heart Rate:</span> ${device.heart_rate} bpm</p>
-                    <p><span class="label">SpO₂:</span> ${device.spo2} %</p>
-                `;
-
-                container.appendChild(card);
-            });
-
+            document.getElementById(elementId).innerHTML = `
+                <h3>MAX30102 - ${sensorId.toUpperCase()}</h3>
+                <p><span class="label">Patient Name:</span> ${data.patient_name}</p>
+                <p><span class="label">Age:</span> ${data.age}</p>
+                <p><span class="label">Heart Rate:</span> ${data.heart_rate} bpm</p>
+                <p><span class="label">SpO₂:</span> ${data.spo2} %</p>
+            `;
         } catch (error) {
-            console.error('Error loading devices:', error);
+            document.getElementById(elementId).innerHTML =
+                `<h3>${sensorId}</h3><p>Error loading data</p>`;
+            console.error(error);
         }
     }
 
     function archive() {
-        alert('Archive clicked');
+        alert("Archive clicked");
     }
 
     function patientManagement() {
-        alert('Patient Management clicked');
+        alert("Patient Management clicked");
     }
 
     function logout() {
-        window.location.href = 'login.htm';
+        window.location.href = "login.htm";
     }
 
-    loadDevices();
+    // Load all sensors
+    loadSensor('sensor1', 'sensor1');
+    loadSensor('sensor2', 'sensor2');
+    loadSensor('sensor3', 'sensor3');
+    loadSensor('sensor4', 'sensor4');
 </script>
 
 </body>
