@@ -1,59 +1,76 @@
 import { neon } from '@neondatabase/serverless';
 
-// اتصال Neon
-const client = new neon(process.env.DATABASE_URL);
+const sql = neon(process.env.DATABASE_URL);
 
 export default async function handler(req, res) {
   try {
+
+    /* =========================
+       POST → استقبال من ESP32
+       ========================= */
     if (req.method === 'POST') {
-      // استقبال البيانات من ESP32 أو أي client
       const { device_id, heartrate, spo2 } = req.body || {};
 
-      if (!device_id || heartrate == null || spo2 == null) {
+      // التحقق من البيانات
+      if (
+        !device_id ||
+        heartrate == null ||
+        spo2 == null
+      ) {
         return res.status(400).json({
           message: 'Missing sensor data',
           received: req.body
         });
       }
 
-      if (typeof heartrate !== 'number' || typeof spo2 !== 'number') {
+      if (![1, 2, 3, 4].includes(Number(device_id))) {
         return res.status(400).json({
-          message: 'Invalid data types',
-          received: req.body
+          message: 'Invalid device_id (must be 1–4)'
         });
       }
 
-      // حفظ البيانات في Neon
-      await client.query(
-        `INSERT INTO max1_data (device_id, heartrate, spo2, time)
+      const table = `max${device_id}_data`;
+
+      // الإدخال
+      await sql.unsafe(
+        `INSERT INTO ${table} (device_id, heartrate, spo2, time)
          VALUES ($1, $2, $3, NOW())`,
         [device_id, heartrate, spo2]
       );
 
-      return res.status(200).json({ message: 'Data saved successfully' });
+      return res.status(200).json({
+        message: 'Data saved successfully',
+        table
+      });
+    }
 
-    } else if (req.method === 'GET') {
-      // جلب آخر 50 سجل
-      const result = await client.query(
+    /* =========================
+       GET → جلب بيانات للداشبورد
+       /api/sensor?device=1
+       ========================= */
+    if (req.method === 'GET') {
+      const device = Number(req.query.device);
+
+      if (![1, 2, 3, 4].includes(device)) {
+        return res.status(400).json({
+          message: 'Invalid or missing device number'
+        });
+      }
+
+      const table = `max${device}_data`;
+
+      const rows = await sql.unsafe(
         `SELECT device_id, heartrate, spo2, time
-         FROM max1_data
-         ORDER BY time ASC`
+         FROM ${table}
+         ORDER BY time ASC
+         LIMIT 100`
       );
 
-      const rows = result.rows ? result.rows : result;
-
-      const data = rows.map(r => ({
-        device_id: r.device_id,
-        heartrate: r.heartrate,
-        spo2: r.spo2,
-        time: r.time ? r.time : new Date().toISOString()
-      }));
-
-      return res.status(200).json(data);
-
-    } else {
-      return res.status(405).json({ message: 'Method not allowed' });
+      return res.status(200).json(rows);
     }
+
+    return res.status(405).json({ message: 'Method not allowed' });
+
   } catch (err) {
     console.error('Server error:', err);
     return res.status(500).json({
