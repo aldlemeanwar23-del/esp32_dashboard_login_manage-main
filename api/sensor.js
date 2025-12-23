@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
       // حفظ البيانات في Neon
       await client.query(
-        `INSERT INTO sensor_data (device_id, heartrate, spo2, time)
+        `INSERT INTO max1_data (device_id, heartrate, spo2, time)
          VALUES ($1, $2, $3, NOW())`,
         [device_id, heartrate, spo2]
       );
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       // جلب آخر 50 سجل
       const result = await client.query(
         `SELECT device_id, heartrate, spo2, time
-         FROM sensor_data
+         FROM max1_data
          ORDER BY time ASC`
       );
 
