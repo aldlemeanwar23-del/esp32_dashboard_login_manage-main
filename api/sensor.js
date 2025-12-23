@@ -11,27 +11,25 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const { device_id, heartrate, spo2 } = req.body || {};
 
-      // التحقق من البيانات
-      if (
-        !device_id ||
-        heartrate == null ||
-        spo2 == null
-      ) {
+      if (!device_id || heartrate == null || spo2 == null) {
         return res.status(400).json({
           message: 'Missing sensor data',
           received: req.body
         });
       }
 
-      if (![1, 2, 3, 4].includes(Number(device_id))) {
+      // القيم المسموحة
+      const allowedDevices = ['max1', 'max2', 'max3', 'max4'];
+
+      if (!allowedDevices.includes(device_id)) {
         return res.status(400).json({
-          message: 'Invalid device_id (must be 1–4)'
+          message: 'Invalid device_id (must be max1, max2, max3, max4)',
+          received: device_id
         });
       }
 
-      const table = `max${device_id}_data`;
+      const table = `${device_id}_data`; // max1_data ...
 
-      // الإدخال
       await sql.unsafe(
         `INSERT INTO ${table} (device_id, heartrate, spo2, time)
          VALUES ($1, $2, $3, NOW())`,
@@ -46,18 +44,20 @@ export default async function handler(req, res) {
 
     /* =========================
        GET → جلب بيانات للداشبورد
-       /api/sensor?device=1
+       /api/sensor?device=max1
        ========================= */
     if (req.method === 'GET') {
-      const device = Number(req.query.device);
+      const device = req.query.device;
 
-      if (![1, 2, 3, 4].includes(device)) {
+      const allowedDevices = ['max1', 'max2', 'max3', 'max4'];
+
+      if (!allowedDevices.includes(device)) {
         return res.status(400).json({
-          message: 'Invalid or missing device number'
+          message: 'Invalid device (must be max1..max4)'
         });
       }
 
-      const table = `max${device}_data`;
+      const table = `${device}_data`;
 
       const rows = await sql.unsafe(
         `SELECT device_id, heartrate, spo2, time
