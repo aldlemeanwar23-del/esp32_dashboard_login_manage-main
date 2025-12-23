@@ -1,123 +1,194 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
+<meta charset="UTF-8">
+<title>Admin Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f1f5f9;
-        }
+<style>
+:root {
+  --primary:#0ea5e9;
+  --bg:#020617;
+  --card:rgba(255,255,255,.08);
+  --border:rgba(255,255,255,.15);
+}
 
-        /* Top bar */
-        .top-bar {
-            background: #0f172a;
-            padding: 15px;
-            display: flex;
-            justify-content: flex-end;
-            gap: 15px;
-        }
+body {
+  margin:0;
+  font-family:Segoe UI, Arial;
+  background:linear-gradient(135deg,#020617,#020617,#020617);
+  color:#e5e7eb;
+}
 
-        .top-bar button {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
+/* Top bar */
+.top-bar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:18px 30px;
+  background:rgba(2,6,23,.8);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+}
 
-        .top-bar button:hover {
-            background: #1d4ed8;
-        }
+.top-bar h2 {
+  margin:0;
+  font-weight:600;
+  color:var(--primary);
+}
 
-        /* Device grid */
-        .container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            padding: 30px;
-        }
+.top-bar .actions button {
+  margin-left:10px;
+  padding:10px 18px;
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:600;
+}
 
-        .device-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
+.top-bar .actions button:hover {
+  opacity:.85;
+}
 
-        .device-card h3 {
-            margin-top: 0;
-            color: #020617;
-        }
+/* Grid */
+.container {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:20px;
+  padding:30px;
+}
 
-        .device-card p {
-            margin: 8px 0;
-        }
+/* Card */
+.device-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:22px;
+  backdrop-filter:blur(14px);
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+  transition:.3s;
+}
 
-        .label {
-            font-weight: bold;
-            color: #334155;
-        }
-    </style>
+.device-card:hover {
+  transform:translateY(-4px);
+}
+
+.device-card h3 {
+  margin:0 0 15px;
+  color:var(--primary);
+}
+
+.data {
+  display:flex;
+  justify-content:space-between;
+  margin:8px 0;
+}
+
+.label {
+  opacity:.7;
+}
+
+.value {
+  font-weight:600;
+}
+
+.open-btn {
+  margin-top:15px;
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  background:#22c55e;
+  color:#020617;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.open-btn:hover {
+  opacity:.85;
+}
+</style>
 </head>
 
 <body>
 
-<!-- Top buttons -->
+<!-- Top -->
 <div class="top-bar">
-    <button onclick="archive()">Archive</button>
-    <button onclick="patientManagement()">Patient Management</button>
+  <h2>🩺 Admin Health Dashboard</h2>
+  <div class="actions">
+    <button onclick="location.href='archive.html'">Archive</button>
+    <button onclick="location.href='manage.html'">Patients</button>
     <button onclick="logout()">Logout</button>
+  </div>
 </div>
 
 <!-- Devices -->
 <div class="container">
-    <div class="device-card" id="sensor1"></div>
-    <div class="device-card" id="sensor2"></div>
-    <div class="device-card" id="sensor3"></div>
-    <div class="device-card" id="sensor4"></div>
+  <div class="device-card" id="sensor1"></div>
+  <div class="device-card" id="sensor2"></div>
+  <div class="device-card" id="sensor3"></div>
+  <div class="device-card" id="sensor4"></div>
 </div>
 
 <script>
-    async function loadSensor(sensorId, elementId) {
-        try {
-            const response = await fetch(`/api/${sensorId}`);
-            const data = await response.json();
+async function loadSensor(device) {
+  const card = document.getElementById(`sensor${device}`);
+  try {
+    const res = await fetch(`/api/sensor?device=${device}`);
+    const data = await res.json();
 
-            document.getElementById(elementId).innerHTML = `
-                <h3>MAX30102 - ${sensorId.toUpperCase()}</h3>
-                <p><span class="label">Patient Name:</span> ${data.patient_name}</p>
-                <p><span class="label">Age:</span> ${data.age}</p>
-                <p><span class="label">Heart Rate:</span> ${data.heartrate} bpm</p>
-                <p><span class="label">SpO₂:</span> ${data.spo2} %</p>
-            `;
-        } catch (error) {
-            document.getElementById(elementId).innerHTML =
-                `<h3>${sensorId}</h3><p>Error loading data</p>`;
-            console.error(error);
-        }
+    if (!data.length) {
+      card.innerHTML = `<h3>Sensor ${device}</h3><p>No data</p>`;
+      return;
     }
 
-    function archive() {
-        alert("Archive clicked");
-    }
+    const last = data[data.length - 1];
 
-    function patientManagement() {
-        alert("Patient Management clicked");
-    }
+    card.innerHTML = `
+      <h3>MAX30102 — Sensor ${device}</h3>
 
-    function logout() {
-        window.location.href = "/login.html";
-    }
+      <div class="data">
+        <span class="label">Heart Rate</span>
+        <span class="value">${last.heartrate} BPM</span>
+      </div>
 
-    // Load all sensors
-    loadSensor('sensor1', 'sensor1');
-    loadSensor('sensor2', 'sensor2');
-    loadSensor('sensor3', 'sensor3');
-    loadSensor('sensor4', 'sensor4');
+      <div class="data">
+        <span class="label">SpO₂</span>
+        <span class="value">${last.spo2} %</span>
+      </div>
+
+      <div class="data">
+        <span class="label">Last Update</span>
+        <span class="value">
+          ${new Date(last.time).toLocaleTimeString()}
+        </span>
+      </div>
+
+      <button class="open-btn"
+        onclick="location.href='dashboard.html?sensor=${device}'">
+        Open Live Dashboard
+      </button>
+    `;
+  } catch (err) {
+    card.innerHTML = `<h3>Sensor ${device}</h3><p>Error loading</p>`;
+    console.error(err);
+  }
+}
+
+function logout() {
+  localStorage.removeItem('auth');
+  location.href = '/login.html';
+}
+
+// Load all sensors
+[1,2,3,4].forEach(loadSensor);
+
+// Auto refresh every 3s
+setInterval(() => {
+  [1,2,3,4].forEach(loadSensor);
+}, 3000);
 </script>
 
 </body>
