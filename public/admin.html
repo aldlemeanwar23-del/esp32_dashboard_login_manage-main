@@ -1,142 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Admin Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-:root {
-  --primary:#0ea5e9;
-  --bg:#020617;
-  --card:rgba(255,255,255,.08);
-  --border:rgba(255,255,255,.15);
-}
-
-body {
-  margin:0;
-  font-family:Segoe UI, Arial;
-  background:linear-gradient(135deg,#020617,#020617,#020617);
-  color:#e5e7eb;
-}
-
-/* Top bar */
-.top-bar {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:18px 30px;
-  background:rgba(2,6,23,.8);
-  backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--border);
-}
-
-.top-bar h2 {
-  margin:0;
-  font-weight:600;
-  color:var(--primary);
-}
-
-.top-bar .actions button {
-  margin-left:10px;
-  padding:10px 18px;
-  background:var(--primary);
-  color:#fff;
-  border:none;
-  border-radius:10px;
-  cursor:pointer;
-  font-weight:600;
-}
-
-.top-bar .actions button:hover {
-  opacity:.85;
-}
-
-/* Grid */
-.container {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:20px;
-  padding:30px;
-}
-
-/* Card */
-.device-card {
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:22px;
-  backdrop-filter:blur(14px);
-  box-shadow:0 10px 30px rgba(0,0,0,.4);
-  transition:.3s;
-}
-
-.device-card:hover {
-  transform:translateY(-4px);
-}
-
-.device-card h3 {
-  margin:0 0 15px;
-  color:var(--primary);
-}
-
-.data {
-  display:flex;
-  justify-content:space-between;
-  margin:8px 0;
-}
-
-.label {
-  opacity:.7;
-}
-
-.value {
-  font-weight:600;
-}
-
-.open-btn {
-  margin-top:15px;
-  width:100%;
-  padding:10px;
-  border-radius:10px;
-  border:none;
-  background:#22c55e;
-  color:#020617;
-  font-weight:700;
-  cursor:pointer;
-}
-
-.open-btn:hover {
-  opacity:.85;
-}
-</style>
-</head>
-
-<body>
-
-<!-- Top -->
-<div class="top-bar">
-  <h2>🩺 Admin Health Dashboard</h2>
-  <div class="actions">
-    <button onclick="location.href='archive.html'">Archive</button>
-    <button onclick="location.href='manage.html'">Patients</button>
-    <button onclick="logout()">Logout</button>
-  </div>
-</div>
-
-<!-- Devices -->
-<div class="container">
-  <div class="device-card" id="sensor1"></div>
-  <div class="device-card" id="sensor2"></div>
-  <div class="device-card" id="sensor3"></div>
-  <div class="device-card" id="sensor4"></div>
-</div>
-
 <script>
 async function loadSensor(device) {
   const card = document.getElementById(`sensor${device}`);
+  const deviceId = `max${device}`; // تحويل 1,2,3,4 إلى max1..max4
   try {
-    const res = await fetch(`/api/sensor?device=${device}`);
+    const res = await fetch(`/api/sensor?device=${deviceId}`);
     const data = await res.json();
 
     if (!data.length) {
@@ -167,7 +34,7 @@ async function loadSensor(device) {
       </div>
 
       <button class="open-btn"
-        onclick="location.href='dashboard.html?sensor=${device}'">
+        onclick="location.href='dashboard.html?sensor=${deviceId}'">
         Open Live Dashboard
       </button>
     `;
@@ -175,11 +42,6 @@ async function loadSensor(device) {
     card.innerHTML = `<h3>Sensor ${device}</h3><p>Error loading</p>`;
     console.error(err);
   }
-}
-
-function logout() {
-  localStorage.removeItem('auth');
-  location.href = '/login.html';
 }
 
 // Load all sensors
@@ -190,6 +52,3 @@ setInterval(() => {
   [1,2,3,4].forEach(loadSensor);
 }, 3000);
 </script>
-
-</body>
-</html>
