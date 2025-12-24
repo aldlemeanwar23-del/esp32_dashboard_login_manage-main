@@ -1,27 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live Sensor Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  margin:0;
+  background:#020617;
+  color:#e5e7eb;
+  font-family:Segoe UI, Arial;
+}
+header {
+  padding:16px;
+  text-align:center;
+  font-size:22px;
+  color:#0ea5e9;
+  border-bottom:1px solid rgba(255,255,255,.15);
+}
+.cards {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:20px;
+  padding:20px;
+}
+.card {
+  background:rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:20px;
+}
+.value {
+  font-size:38px;
+  text-align:center;
+  margin-top:10px;
+}
+canvas {
+  height:220px !important;
+}
+button {
+  margin-top:12px;
+  padding:10px 18px;
+  border:none;
+  border-radius:8px;
+  background:#22c55e;
+  font-weight:700;
+  cursor:pointer;
+}
+button:hover { opacity:.9; }
+</style>
+</head>
+
+<body>
+
 <script>
-/* =======================
-   Auth check
-   ======================= */
 if (localStorage.getItem('auth') !== '1') {
   location.href = '/login.html';
 }
+</script>
 
-/* =======================
-   Get device (max1..max4)
-   ======================= */
+<header>
+📊 Live Dashboard — <span id="deviceName"></span>
+<br>
+<button onclick="location.href='admin.html'">⬅ Back to Admin</button>
+</header>
+
+<div class="cards">
+  <div class="card">
+    <h3>Heart Rate</h3>
+    <div class="value" id="hr">-- BPM</div>
+  </div>
+
+  <div class="card">
+    <h3>SpO₂</h3>
+    <div class="value" id="spo">-- %</div>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card">
+    <canvas id="hrChart"></canvas>
+  </div>
+  <div class="card">
+    <canvas id="spoChart"></canvas>
+  </div>
+</div>
+
+<script>
+/* ======================
+   Get device from URL
+   ====================== */
 const params = new URLSearchParams(window.location.search);
-let device = params.get('sensor'); // expected: max1..max4
+const device = params.get('sensor'); // max1|max2|max3|max4
 
-if (!['max1','max2','max3','max4'].includes(device)) {
-  device = 'max1'; // fallback safe
+if (!device || !['max1','max2','max3','max4'].includes(device)) {
+  alert('Invalid sensor');
+  location.href = 'admin.html';
 }
 
-document.getElementById('sensorNo').innerText = device.toUpperCase();
+document.getElementById('deviceName').innerText = device.toUpperCase();
 
-/* =======================
-   Chart setup
-   ======================= */
-let labels = [], hrData = [], spoData = [];
+/* ======================
+   Charts setup
+   ====================== */
+let labels = [];
+let hrData = [];
+let spoData = [];
 
 const hrChart = new Chart(document.getElementById('hrChart'), {
   type: 'line',
@@ -30,8 +115,8 @@ const hrChart = new Chart(document.getElementById('hrChart'), {
     datasets: [{
       label: 'Heart Rate',
       data: hrData,
-      borderColor: '#00ffff',
-      fill: true
+      borderColor: '#0ea5e9',
+      tension: .3
     }]
   }
 });
@@ -43,25 +128,25 @@ const spoChart = new Chart(document.getElementById('spoChart'), {
     datasets: [{
       label: 'SpO₂',
       data: spoData,
-      borderColor: '#ff00ff',
-      fill: true
+      borderColor: '#22c55e',
+      tension: .3
     }]
   }
 });
 
-/* =======================
-   Load data
-   ======================= */
+/* ======================
+   Load sensor data
+   ====================== */
 async function loadData() {
   try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
-    if (!Array.isArray(data) || !data.length) return;
+    if (!Array.isArray(data) || data.length === 0) return;
 
     labels.length = hrData.length = spoData.length = 0;
 
-    data.slice(-100).forEach(r => {
+    data.slice(-50).forEach(r => {
       labels.push('');
       hrData.push(r.heartrate);
       spoData.push(r.spo2);
@@ -73,14 +158,18 @@ async function loadData() {
 
     hrChart.update();
     spoChart.update();
+
   } catch (err) {
-    console.error('Sensor fetch error:', err);
+    console.error('Load error:', err);
   }
 }
 
-/* =======================
+/* ======================
    Auto refresh
-   ======================= */
-setInterval(loadData, 2000);
+   ====================== */
 loadData();
+setInterval(loadData, 2000);
 </script>
+
+</body>
+</html>
