@@ -34,6 +34,7 @@ export default async function handler(req, res) {
           received: req.body
         });
       }
+console.log('POST Data:', { device_id, heartrate, spo2 });
 
       // إدخال البيانات بأمان
       try {
