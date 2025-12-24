@@ -126,35 +126,40 @@ body {
 
 <!-- Devices -->
 <div class="container">
-  <div class="device-card" id="sensor1"></div>
-  <div class="device-card" id="sensor2"></div>
-  <div class="device-card" id="sensor3"></div>
-  <div class="device-card" id="sensor4"></div>
+  <div class="device-card" id="max1"></div>
+  <div class="device-card" id="max2"></div>
+  <div class="device-card" id="max3"></div>
+  <div class="device-card" id="max4"></div>
 </div>
 
 <script>
-// تحويل رقم الجهاز إلى device_id الخاص بالـ API
-function getDeviceId(num) {
-  return `max${num}`; // 1 → max1
-}
+/* =========================
+   Devices list
+   ========================= */
+const devices = ['max1','max2','max3','max4'];
 
-async function loadSensor(deviceNumber) {
-  const card = document.getElementById(`sensor${deviceNumber}`);
-  const deviceId = getDeviceId(deviceNumber);
+/* =========================
+   Load sensor data
+   ========================= */
+async function loadSensor(deviceId) {
+  const card = document.getElementById(deviceId);
 
   try {
     const res = await fetch(`/api/sensor?device=${deviceId}`);
     const data = await res.json();
 
-    if (!data || data.length === 0) {
-      card.innerHTML = `<h3>Sensor ${deviceNumber}</h3><p>No data</p>`;
+    if (!Array.isArray(data) || data.length === 0) {
+      card.innerHTML = `
+        <h3>${deviceId.toUpperCase()}</h3>
+        <p>No data</p>
+      `;
       return;
     }
 
     const last = data[data.length - 1];
 
     card.innerHTML = `
-      <h3>MAX30102 — Sensor ${deviceNumber}</h3>
+      <h3>MAX30102 — ${deviceId.toUpperCase()}</h3>
 
       <div class="data">
         <span class="label">Heart Rate</span>
@@ -168,29 +173,38 @@ async function loadSensor(deviceNumber) {
 
       <div class="data">
         <span class="label">Last Update</span>
-        <span class="value">${new Date(last.time).toLocaleTimeString()}</span>
+        <span class="value">
+          ${new Date(last.time).toLocaleTimeString()}
+        </span>
       </div>
 
-      <button class="open-btn" onclick="location.href='dashboard.html?sensor=${deviceId}'">
+      <button class="open-btn"
+        onclick="location.href='dashboard.html?sensor=${deviceId}'">
         Open Live Dashboard
       </button>
     `;
   } catch (err) {
-    card.innerHTML = `<h3>Sensor ${deviceNumber}</h3><p>Error loading</p>`;
+    card.innerHTML = `
+      <h3>${deviceId.toUpperCase()}</h3>
+      <p>Error loading</p>
+    `;
     console.error(err);
   }
 }
 
+/* =========================
+   Logout
+   ========================= */
 function logout() {
   localStorage.removeItem('auth');
   location.href = '/login.html';
 }
 
-// تحميل كل الحساسات تلقائيًا
-[1,2,3,4].forEach(loadSensor);
-
-// تحديث تلقائي كل 3 ثواني
-setInterval(() => [1,2,3,4].forEach(loadSensor), 3000);
+/* =========================
+   Init
+   ========================= */
+devices.forEach(loadSensor);
+setInterval(() => devices.forEach(loadSensor), 3000);
 </script>
 
 </body>
