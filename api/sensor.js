@@ -21,7 +21,7 @@ export default async function handler(req, res) {
 
       try {
         await sql.unsafe(`
-          INSERT INTO ${device_id}_data (device_id, heartrate, spo2, time)
+          INSERT INTO sensor_data (device_id, heartrate, spo2, time)
           VALUES ($1,$2,$3,NOW())
         `, [device_id, heartrate, spo2]);
         console.log('DB Insert Success:', device_id);
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
       try {
         const rows = await sql.unsafe(`
           SELECT device_id, heartrate, spo2, time
-          FROM ${device}_data
+          FROM sensor_data
           ORDER BY time ASC
           LIMIT 100
         `);
