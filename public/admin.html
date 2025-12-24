@@ -12,14 +12,12 @@
   --card:rgba(255,255,255,.08);
   --border:rgba(255,255,255,.15);
 }
-
 body {
   margin:0;
   font-family:Segoe UI, Arial;
-  background:linear-gradient(135deg,#020617,#020617,#020617);
+  background:var(--bg);
   color:#e5e7eb;
 }
-
 /* Top bar */
 .top-bar {
   display:flex;
@@ -27,31 +25,24 @@ body {
   align-items:center;
   padding:18px 30px;
   background:rgba(2,6,23,.8);
-  backdrop-filter:blur(10px);
   border-bottom:1px solid var(--border);
 }
-
 .top-bar h2 {
   margin:0;
-  font-weight:600;
   color:var(--primary);
 }
-
 .top-bar .actions button {
   margin-left:10px;
   padding:10px 18px;
   background:var(--primary);
-  color:#fff;
   border:none;
-  border-radius:10px;
+  color:#fff;
+  border-radius:8px;
   cursor:pointer;
-  font-weight:600;
 }
-
 .top-bar .actions button:hover {
   opacity:.85;
 }
-
 /* Grid */
 .container {
   display:grid;
@@ -59,62 +50,48 @@ body {
   gap:20px;
   padding:30px;
 }
-
 /* Card */
 .device-card {
   background:var(--card);
   border:1px solid var(--border);
-  border-radius:16px;
+  border-radius:14px;
   padding:22px;
-  backdrop-filter:blur(14px);
-  box-shadow:0 10px 30px rgba(0,0,0,.4);
-  transition:.3s;
+  backdrop-filter:blur(10px);
 }
-
-.device-card:hover {
-  transform:translateY(-4px);
-}
-
 .device-card h3 {
-  margin:0 0 15px;
+  margin:0 0 10px;
   color:var(--primary);
 }
-
 .data {
   display:flex;
   justify-content:space-between;
   margin:8px 0;
 }
-
 .label {
   opacity:.7;
 }
-
 .value {
   font-weight:600;
 }
-
 .open-btn {
-  margin-top:15px;
   width:100%;
   padding:10px;
-  border-radius:10px;
+  margin-top:12px;
   border:none;
   background:#22c55e;
   color:#020617;
   font-weight:700;
+  border-radius:8px;
   cursor:pointer;
 }
-
 .open-btn:hover {
-  opacity:.85;
+  opacity:.9;
 }
 </style>
 </head>
 
 <body>
 
-<!-- Top -->
 <div class="top-bar">
   <h2>🩺 Admin Health Dashboard</h2>
   <div class="actions">
@@ -124,41 +101,36 @@ body {
   </div>
 </div>
 
-<!-- Devices -->
 <div class="container">
-  <div class="device-card" id="max1"></div>
-  <div class="device-card" id="max2"></div>
-  <div class="device-card" id="max3"></div>
-  <div class="device-card" id="max4"></div>
+  <div class="device-card" id="card1"></div>
+  <div class="device-card" id="card2"></div>
+  <div class="device-card" id="card3"></div>
+  <div class="device-card" id="card4"></div>
 </div>
 
 <script>
-/* =========================
-   Devices list
-   ========================= */
-const devices = ['max1','max2','max3','max4'];
+// تحويل رقم الحساس إلى device_id
+function toDeviceId(num) {
+  return "max" + num;
+}
 
-/* =========================
-   Load sensor data
-   ========================= */
-async function loadSensor(deviceId) {
-  const card = document.getElementById(deviceId);
+// تحميل بيانات لكل حساس
+async function loadCard(num) {
+  const el = document.getElementById("card" + num);
+  const deviceId = toDeviceId(num);
 
   try {
     const res = await fetch(`/api/sensor?device=${deviceId}`);
     const data = await res.json();
 
-    if (!Array.isArray(data) || data.length === 0) {
-      card.innerHTML = `
-        <h3>${deviceId.toUpperCase()}</h3>
-        <p>No data</p>
-      `;
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      el.innerHTML = `<h3>Sensor ${num}</h3><p>No data</p>`;
       return;
     }
 
     const last = data[data.length - 1];
 
-    card.innerHTML = `
+    el.innerHTML = `
       <h3>MAX30102 — ${deviceId.toUpperCase()}</h3>
 
       <div class="data">
@@ -172,39 +144,35 @@ async function loadSensor(deviceId) {
       </div>
 
       <div class="data">
-        <span class="label">Last Update</span>
-        <span class="value">
-          ${new Date(last.time).toLocaleTimeString()}
-        </span>
+        <span class="label">Time</span>
+        <span class="value">${new Date(last.time).toLocaleTimeString()}</span>
       </div>
 
-      <button class="open-btn"
-        onclick="location.href='dashboard.html?sensor=${deviceId}'">
+      <button class="open-btn" onclick="openDashboard('${deviceId}')">
         Open Live Dashboard
       </button>
     `;
-  } catch (err) {
-    card.innerHTML = `
-      <h3>${deviceId.toUpperCase()}</h3>
-      <p>Error loading</p>
-    `;
-    console.error(err);
+  } catch (e) {
+    el.innerHTML = `<h3>Sensor ${num}</h3><p>Error loading</p>`;
+    console.error(e);
   }
 }
 
-/* =========================
-   Logout
-   ========================= */
-function logout() {
-  localStorage.removeItem('auth');
-  location.href = '/login.html';
+// فتح صفحة dashboard لكل جهاز
+function openDashboard(deviceId) {
+  location.href = `dashboard.html?sensor=${deviceId}`;
 }
 
-/* =========================
-   Init
-   ========================= */
-devices.forEach(loadSensor);
-setInterval(() => devices.forEach(loadSensor), 3000);
+function logout() {
+  localStorage.removeItem('auth');
+  location.href = "/login.html";
+}
+
+// تحميل كل البطاقات
+[1,2,3,4].forEach(loadCard);
+
+// تحديث تلقائي
+setInterval(() => [1,2,3,4].forEach(loadCard), 3000);
 </script>
 
 </body>
