@@ -16,7 +16,7 @@ export default async function handler(req, res) {
       if (!allowedDevices.includes(device_id)) {
         return res.status(400).json({ message:'Invalid device (must be max1..max4)', received:device_id });
       }
-if(device_id == max1)
+if(device_id == 'max1')
 { await sql.unsafe(
         `INSERT INTO max1_data (device_id, heartrate, spo2, time)
          VALUES ($1,$2,$3,NOW())`,
@@ -25,7 +25,7 @@ if(device_id == max1)
   return res.status(200).json({ message:'Data saved successfully' });
     }
 
-      else if(device_id ==max2)
+      else if(device_id =='max2')
         {
            await sql.unsafe(
         `INSERT INTO max2_data (device_id, heartrate, spo2, time)
@@ -35,7 +35,7 @@ if(device_id == max1)
 
         return res.status(200).json({ message:'Data saved successfully' });
     }
-      else if(device_id ==max3)
+      else if(device_id =='max3')
         {
       await sql.unsafe(
         `INSERT INTO ${device_id}_data (device_id, heartrate, spo2, time)
@@ -44,7 +44,7 @@ if(device_id == max1)
       );
          return res.status(200).json({ message:'Data saved successfully' });
     }
-       else if(device_id ==max4)
+       else if(device_id =='max4')
         {
       await sql.unsafe(
         `INSERT INTO max4_data (device_id, heartrate, spo2, time)
