@@ -1,31 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Health Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root {
+  --primary:#0ea5e9;
+  --bg:#020617;
+  --card:rgba(255,255,255,.08);
+  --border:rgba(255,255,255,.15);
+}
+body {
+  margin:0;
+  font-family:Segoe UI, Arial;
+  background:linear-gradient(135deg,#020617,#020617,#020617);
+  color:#e5e7eb;
+}
+/* Top bar */
+.top-bar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:18px 30px;
+  background:rgba(2,6,23,.8);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+}
+.top-bar h2 {
+  margin:0;
+  font-weight:600;
+  color:var(--primary);
+}
+.top-bar .actions button {
+  margin-left:10px;
+  padding:10px 18px;
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:600;
+}
+.top-bar .actions button:hover {
+  opacity:.85;
+}
+/* Grid */
+.container {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:20px;
+  padding:30px;
+}
+/* Card */
+.device-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:22px;
+  backdrop-filter:blur(14px);
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+  transition:.3s;
+}
+.device-card:hover {
+  transform:translateY(-4px);
+}
+.device-card h3 {
+  margin:0 0 15px;
+  color:var(--primary);
+}
+.data {
+  display:flex;
+  justify-content:space-between;
+  margin:8px 0;
+}
+.label {
+  opacity:.7;
+}
+.value {
+  font-weight:600;
+}
+.open-btn {
+  margin-top:15px;
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  background:#22c55e;
+  color:#020617;
+  font-weight:700;
+  cursor:pointer;
+}
+.open-btn:hover {
+  opacity:.85;
+}
+canvas { height:160px !important; }
+</style>
+</head>
+<body>
+
+<!-- Top -->
+<div class="top-bar">
+  <h2>🩺 Admin Health Dashboard</h2>
+  <div class="actions">
+    <button onclick="location.href='archive.html'">Archive</button>
+    <button onclick="location.href='manage.html'">Patients</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<!-- Devices -->
 <div class="container">
-  <div class="device-card" id="card1"></div>
-  <div class="device-card" id="card2"></div>
-  <div class="device-card" id="card3"></div>
-  <div class="device-card" id="card4"></div>
+  <div class="device-card" id="max1"></div>
+  <div class="device-card" id="max2"></div>
+  <div class="device-card" id="max3"></div>
+  <div class="device-card" id="max4"></div>
 </div>
 
 <script>
-function toDeviceId(num){ return "max"+num; }
-
-async function loadCard(num){
-  const el=document.getElementById("card"+num);
-  const deviceId=toDeviceId(num);
-  try{
-    const res=await fetch(`/api/sensor?device=${deviceId}`);
-    const data=await res.json();
-    if(!data.length){ el.innerHTML=`<h3>Sensor ${num}</h3><p>No data</p>`; return; }
-    const last=data[data.length-1];
-    el.innerHTML=`
-      <h3>MAX30102 — ${deviceId.toUpperCase()}</h3>
-      <div class="data"><span class="label">Heart Rate</span><span class="value">${last.heartrate} BPM</span></div>
-      <div class="data"><span class="label">SpO₂</span><span class="value">${last.spo2} %</span></div>
-      <div class="data"><span class="label">Last Update</span><span class="value">${new Date(last.time).toLocaleTimeString()}</span></div>
-      <button class="open-btn" onclick="location.href='dashboard.html?sensor=${deviceId}'">Open Live Dashboard</button>
-    `;
-  } catch(e){ el.innerHTML=`<h3>Sensor ${num}</h3><p>Error loading</p>`; console.error(e);}
+// Logout
+function logout() {
+  localStorage.removeItem('auth');
+  location.href='/login.html';
 }
 
-[1,2,3,4].forEach(loadCard);
-setInterval(()=>[1,2,3,4].forEach(loadCard),3000);
+// قائمة الأجهزة
+const devices = ['max1','max2','max3','max4'];
+
+// إنشاء بطاقات وأشكال بيانية لكل جهاز
+const charts = {};
+
+devices.forEach(device => {
+  const card = document.getElementById(device);
+
+  // إضافة HTML داخل البطاقة
+  card.innerHTML = `
+    <h3>${device.toUpperCase()}</h3>
+    <div class="data"><span class="label">Heart Rate</span> <span class="value" id="${device}-hr">--</span></div>
+    <div class="data"><span class="label">SpO₂</span> <span class="value" id="${device}-spo">--</span></div>
+    <canvas id="${device}-hrChart"></canvas>
+    <canvas id="${device}-spoChart"></canvas>
+  `;
+
+  // إعداد الرسوم البيانية
+  charts[device] = {
+    hrChart: new Chart(document.getElementById(`${device}-hrChart`), {
+      type:'line',
+      data:{labels:[],datasets:[{label:'HR',data:[],borderColor:'#00ffff',fill:true}]},
+      options:{animation:false, responsive:true}
+    }),
+    spoChart: new Chart(document.getElementById(`${device}-spoChart`), {
+      type:'line',
+      data:{labels:[],datasets:[{label:'SpO₂',data:[],borderColor:'#ff00ff',fill:true}]},
+      options:{animation:false,responsive:true}
+    })
+  };
+});
+
+// تحميل بيانات من API
+async function loadDevice(device) {
+  try {
+    const res = await fetch(`/api/sensor?device=${device}`);
+    const data = await res.json();
+    if (!data || data.length===0) return;
+
+    const last = data[data.length-1];
+
+    document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
+    document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
+
+    const hrChart = charts[device].hrChart;
+    const spoChart = charts[device].spoChart;
+
+    hrChart.data.labels = data.map(()=> '');
+    hrChart.data.datasets[0].data = data.map(r => r.heartrate);
+    hrChart.update();
+
+    spoChart.data.labels = data.map(()=> '');
+    spoChart.data.datasets[0].data = data.map(r => r.spo2);
+    spoChart.update();
+
+  } catch(e) {
+    console.error('Error loading device', device, e);
+  }
+}
+
+// تحميل كل الأجهزة
+function loadAllDevices() {
+  devices.forEach(loadDevice);
+}
+
+// تحميل أول مرة
+loadAllDevices();
+// تحديث تلقائي كل ثانيتين
+setInterval(loadAllDevices,2000);
 </script>
+
+</body>
+</html>
