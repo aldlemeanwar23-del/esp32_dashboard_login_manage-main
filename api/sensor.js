@@ -46,7 +46,7 @@ export default async function handler(req, res) {
        GET → جلب بيانات للداشبورد
        /api/sensor?device=max1
        ========================= */
-    if (req.method === 'GET') {
+  else if (req.method === 'GET') {
       const device = req.query.device;
 
       const allowedDevices = ['max1', 'max2', 'max3', 'max4'];
