@@ -1,79 +1,95 @@
 import { neon } from '@neondatabase/serverless';
 
-const sql = neon(process.env.DATABASE_URL);
+// الاتصال بقاعدة البيانات
+const client = new neon(process.env.DATABASE_URL);
 
 export default async function handler(req, res) {
   try {
     const allowedDevices = ['max1','max2','max3','max4'];
 
+    // ======== POST: استقبال بيانات الحساس ========
     if (req.method === 'POST') {
       const { device_id, heartrate, spo2 } = req.body || {};
 
+      // تحقق من وجود جميع القيم
       if (!device_id || heartrate == null || spo2 == null) {
-        return res.status(400).json({ message:'Missing data', received:req.body });
+        return res.status(400).json({
+          message: 'Missing sensor data',
+          received: req.body
+        });
       }
 
+      // تحقق من صحة device_id
       if (!allowedDevices.includes(device_id)) {
-        return res.status(400).json({ message:'Invalid device (must be max1..max4)', received:device_id });
+        return res.status(400).json({
+          message: 'Invalid device (must be max1..max4)',
+          received: device_id
+        });
       }
-if(device_id == 'max1')
-{ await sql.unsafe(
-        `INSERT INTO max1_data (device_id, heartrate, spo2, time)
-         VALUES ($1,$2,$3,NOW())`,
-        [device_id, heartrate, spo2]
-      );
-  return res.status(200).json({ message:'Data saved successfully' });
+
+      // تحقق من أنواع البيانات
+      if (typeof heartrate !== 'number' || typeof spo2 !== 'number') {
+        return res.status(400).json({
+          message: 'Invalid data types (heartrate & spo2 must be numbers)',
+          received: req.body
+        });
+      }
+
+      // إدخال البيانات بأمان
+      try {
+        await client.unsafe(
+          `INSERT INTO ${device_id}_data (device_id, heartrate, spo2, time)
+           VALUES ($1,$2,$3,NOW())`,
+          [device_id, heartrate, spo2]
+        );
+      } catch (dbErr) {
+        console.error('Database Insert Error:', dbErr);
+        return res.status(500).json({
+          message: 'Database error while inserting data',
+          detail: dbErr.message
+        });
+      }
+
+      return res.status(200).json({ message: 'Data saved successfully' });
     }
 
-      else if(device_id =='max2')
-        {
-           await sql.unsafe(
-        `INSERT INTO max2_data (device_id, heartrate, spo2, time)
-         VALUES ($1,$2,$3,NOW())`,
-        [device_id, heartrate, spo2]
-      );
-
-        return res.status(200).json({ message:'Data saved successfully' });
-    }
-      else if(device_id =='max3')
-        {
-      await sql.unsafe(
-        `INSERT INTO ${device_id}_data (device_id, heartrate, spo2, time)
-         VALUES ($1,$2,$3,NOW())`,
-        [device_id, heartrate, spo2]
-      );
-         return res.status(200).json({ message:'Data saved successfully' });
-    }
-       else if(device_id =='max4')
-        {
-      await sql.unsafe(
-        `INSERT INTO max4_data (device_id, heartrate, spo2, time)
-         VALUES ($1,$2,$3,NOW())`,
-        [device_id, heartrate, spo2]
-      );
-      
-      return res.status(200).json({ message:'Data saved successfully' });
-    }
-
-   /* if (req.method === 'GET') {
+    // ======== GET: جلب بيانات الحساس ========
+    if (req.method === 'GET') {
       const device = (req.query.device || '').toLowerCase();
+
+      // تحقق من صحة الجهاز
       if (!allowedDevices.includes(device)) {
-        return res.status(400).json({ message:'Invalid device (must be max1..max4)' });
+        return res.status(400).json({
+          message: 'Invalid device (must be max1..max4)',
+          received: device
+        });
       }
 
-      const rows = await sql.unsafe(
-        `SELECT device_id, heartrate, spo2, time
-         FROM ${device}_data
-         ORDER BY time ASC
-         LIMIT 100`
-      );
-
-      return res.status(200).json(rows);
+      try {
+        const result = await client.unsafe(
+          `SELECT device_id, heartrate, spo2, time
+           FROM ${device}_data
+           ORDER BY time ASC
+           LIMIT 100`
+        );
+        return res.status(200).json(result);
+      } catch (dbErr) {
+        console.error('Database Select Error:', dbErr);
+        return res.status(500).json({
+          message: 'Database error while fetching data',
+          detail: dbErr.message
+        });
+      }
     }
-*/
-   // return res.status(405).json({ message:'Method not allowed' });
+
+    // طريقة غير مسموح بها
+    return res.status(405).json({ message: 'Method not allowed' });
+
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message:'Server error', detail: err.message });
+    console.error('Server error:', err);
+    return res.status(500).json({
+      message: 'Server error',
+      detail: err.message
+    });
   }
 }
