@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
       if (!allowedDevices.includes(device_id)) {
         return res.status(400).json({
-          message: 'Invalid device_id (must be max1, max2, max3, max4)',
+          message: 'Invalid device_Id (must be max1, max2, max3, max4)',
           received: device_id
         });
       }
