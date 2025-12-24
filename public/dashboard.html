@@ -1,91 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Dashboard | ESP32</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-body {
-  margin:0;
-  background:#0a0f1a;
-  color:#00ffff;
-  font-family:Segoe UI;
-}
-header {
-  padding:15px;
-  text-align:center;
-  font-size:22px;
-  box-shadow:0 0 15px cyan;
-}
-.cards {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:15px;
-  padding:20px;
-}
-.card {
-  background:rgba(0,0,0,.6);
-  padding:20px;
-  border-radius:14px;
-  box-shadow:0 0 20px rgba(0,255,255,.3);
-}
-.value {
-  font-size:40px;
-  text-align:center;
-}
-button {
-  margin:10px;
-  padding:10px 20px;
-  background:#00ffff;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:bold;
-}
-canvas { height:220px !important; }
-</style>
-</head>
-
-<body>
-
-<script>
-if(localStorage.getItem('auth')!=='1') location.href='/login.html';
-</script>
-
-<header>
-⚡ ESP32 Health Dashboard — Sensor <span id="sensorNo"></span>
-<button onclick="location.href='manage.html'">Manage Patients</button>
-</header>
-
-<div class="cards">
-  <div class="card">
-    <h3>Heart Rate</h3>
-    <div class="value" id="hr">-- BPM</div>
-  </div>
-  <div class="card">
-    <h3>SpO₂</h3>
-    <div class="value" id="spo">-- %</div>
-  </div>
-</div>
-
-<div class="cards">
-  <div class="card">
-    <canvas id="hrChart"></canvas>
-  </div>
-  <div class="card">
-    <canvas id="spoChart"></canvas>
-  </div>
-</div>
-
 <script>
 /* =======================
-   Get sensor number
+   Auth check
+   ======================= */
+if (localStorage.getItem('auth') !== '1') {
+  location.href = '/login.html';
+}
+
+/* =======================
+   Get device (max1..max4)
    ======================= */
 const params = new URLSearchParams(window.location.search);
-const sensorNo = params.get('sensor') || 1; // default sensor 1
-document.getElementById('sensorNo').innerText = sensorNo;
+let device = params.get('sensor'); // expected: max1..max4
+
+if (!['max1','max2','max3','max4'].includes(device)) {
+  device = 'max1'; // fallback safe
+}
+
+document.getElementById('sensorNo').innerText = device.toUpperCase();
 
 /* =======================
    Chart setup
@@ -119,13 +50,14 @@ const spoChart = new Chart(document.getElementById('spoChart'), {
 });
 
 /* =======================
-   Load data by sensor
+   Load data
    ======================= */
-async function loadData(sensorNo) {
+async function loadData() {
   try {
-    const res = await fetch(`/api/get_sensor${sensorNo}`);
+    const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
-    if (!data.length) return;
+
+    if (!Array.isArray(data) || !data.length) return;
 
     labels.length = hrData.length = spoData.length = 0;
 
@@ -141,7 +73,6 @@ async function loadData(sensorNo) {
 
     hrChart.update();
     spoChart.update();
-
   } catch (err) {
     console.error('Sensor fetch error:', err);
   }
@@ -150,9 +81,6 @@ async function loadData(sensorNo) {
 /* =======================
    Auto refresh
    ======================= */
-setInterval(() => loadData(sensorNo), 2000);
-loadData(sensorNo);
+setInterval(loadData, 2000);
+loadData();
 </script>
-
-</body>
-</html>
