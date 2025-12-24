@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ message:'Data saved successfully' });
     }
 
-    if (req.method === 'GET') {
+   /* if (req.method === 'GET') {
       const device = (req.query.device || '').toLowerCase();
       if (!allowedDevices.includes(device)) {
         return res.status(400).json({ message:'Invalid device (must be max1..max4)' });
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
       return res.status(200).json(rows);
     }
-
+*/
     return res.status(405).json({ message:'Method not allowed' });
   } catch (err) {
     console.error(err);
