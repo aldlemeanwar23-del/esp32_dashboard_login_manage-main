@@ -66,16 +66,16 @@ header button:hover { background: #00bcd4; }
   font-weight: bold;
 }
 
-/* Charts بشكل عمودي ومتناسق */
+/* Charts بشكل عمودي */
 .charts {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
 }
 canvas {
   width: 100%;
   height: 300px; /* ارتفاع مناسب لرؤية الرسم */
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   padding: 5px;
 }
@@ -109,6 +109,7 @@ canvas {
 </div>
 
 <script>
+// قراءة اسم الجهاز من URL
 const params = new URLSearchParams(window.location.search);
 const device = params.get('device') || 'max1';
 document.getElementById('deviceName').innerText = device.toUpperCase();
@@ -117,23 +118,41 @@ let labels = [], hrData = [], spoData = [];
 
 const hrChart = new Chart(document.getElementById('hrChart'), {
   type:'line',
-  data:{labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', fill:true}]},
+  data:{
+    labels,
+    datasets:[{
+      label:'Heart Rate',
+      data:hrData,
+      borderColor:'#00ffff',
+      backgroundColor:'rgba(0,255,255,0.2)',
+      fill:true
+    }]
+  },
   options:{
     responsive:true,
     animation:false,
     maintainAspectRatio:false,
-    scales:{y:{beginAtZero:true}}
+    scales:{ y:{ beginAtZero:true } }
   }
 });
 
 const spoChart = new Chart(document.getElementById('spoChart'), {
   type:'line',
-  data:{labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', fill:true}]},
+  data:{
+    labels,
+    datasets:[{
+      label:'SpO₂',
+      data:spoData,
+      borderColor:'#ff00ff',
+      backgroundColor:'rgba(255,0,255,0.2)',
+      fill:true
+    }]
+  },
   options:{
     responsive:true,
     animation:false,
     maintainAspectRatio:false,
-    scales:{y:{beginAtZero:true}}
+    scales:{ y:{ beginAtZero:true } }
   }
 });
 
@@ -147,6 +166,7 @@ async function loadData() {
     document.getElementById('hr').innerText = last.heartrate + ' BPM';
     document.getElementById('spo').innerText = last.spo2 + ' %';
 
+    // آخر 50 نقطة فقط لتقليل الضغط على الجارت
     labels.length = hrData.length = spoData.length = 0;
     data.slice(-50).forEach(r => {
       labels.push('');
@@ -161,7 +181,7 @@ async function loadData() {
   }
 }
 
-// تحميل أول مرة + تحديث تلقائي
+// تحميل أول مرة + تحديث تلقائي كل ثانيتين
 loadData();
 setInterval(loadData, 2000);
 </script>
