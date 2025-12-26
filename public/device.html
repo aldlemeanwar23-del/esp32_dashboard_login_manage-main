@@ -5,55 +5,109 @@
 <title>Device Details</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-body { margin:0; font-family:Segoe UI, Arial; background:#020617; color:#e5e7eb; }
-.top-bar { display:flex; justify-content:space-between; align-items:center; padding:18px 30px; background:rgba(2,6,23,.8); border-bottom:1px solid rgba(255,255,255,.15); }
-.top-bar h2 { margin:0; color:#0ea5e9; }
-.top-bar button { padding:8px 15px; background:#0ea5e9; border:none; border-radius:8px; cursor:pointer; color:#fff; font-weight:600; }
-.top-bar button:hover { opacity:.85; }
-.container { display:flex; flex-wrap:wrap; gap:20px; padding:20px; justify-content:center; }
-.card { background:rgba(255,255,255,.08); padding:20px; border-radius:16px; backdrop-filter:blur(12px); flex:1 1 400px; max-width:500px; }
-.card h3 { margin:0 0 15px; color:#0ea5e9; }
-.data { display:flex; justify-content:space-between; margin:8px 0; }
-.value { font-weight:600; }
-canvas { width:100% !important; height:200px !important; }
+body {
+  background:#0a0f1a;
+  color:#fff;
+  font-family:Segoe UI;
+  margin:0;
+  padding:0;
+}
+header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px 20px;
+  background:#001f2f;
+  color:#00ffff;
+  font-size:20px;
+}
+header button {
+  padding:8px 16px;
+  border:none;
+  border-radius:6px;
+  background:#00ffff;
+  color:#020617;
+  font-weight:bold;
+  cursor:pointer;
+}
+header button:hover {
+  background:#00bcd4;
+}
+.container {
+  padding:20px;
+}
+.results {
+  display:flex;
+  justify-content:space-around;
+  margin-bottom:20px;
+}
+.result-card {
+  background:rgba(0,255,255,0.1);
+  padding:15px 20px;
+  border-radius:10px;
+  text-align:center;
+  flex:1;
+  margin:0 10px;
+}
+.result-card h3 {
+  margin:0 0 10px 0;
+  font-size:16px;
+  color:#00ffff;
+}
+.result-card .value {
+  font-size:30px;
+  font-weight:bold;
+}
+canvas {
+  background:rgba(0,0,0,0.3);
+  border-radius:12px;
+  padding:10px;
+  margin-bottom:20px;
+}
 </style>
 </head>
 <body>
 
-<div class="top-bar">
-  <h2 id="deviceName">Device</h2>
+<header>
+  <span>Device Details: <span id="deviceName"></span></span>
   <button onclick="location.href='admin.html'">← Back</button>
-</div>
+</header>
 
 <div class="container">
-  <div class="card">
-    <h3>Latest Readings</h3>
-    <div class="data"><span>Heart Rate:</span> <span id="hrVal">--</span></div>
-    <div class="data"><span>SpO₂:</span> <span id="spoVal">--</span></div>
+  <div class="results">
+    <div class="result-card">
+      <h3>Heart Rate</h3>
+      <div class="value" id="hr">-- BPM</div>
+    </div>
+    <div class="result-card">
+      <h3>SpO₂</h3>
+      <div class="value" id="spo">-- %</div>
+    </div>
   </div>
-  <div class="card">
-    <canvas id="hrChart"></canvas>
-  </div>
-  <div class="card">
-    <canvas id="spoChart"></canvas>
-  </div>
+
+  <canvas id="hrChart"></canvas>
+  <canvas id="spoChart"></canvas>
 </div>
 
 <script>
 const params = new URLSearchParams(window.location.search);
-const device = params.get('device') || 'max1';
+const device = params.get('sensor') || 'max1';
 document.getElementById('deviceName').innerText = device.toUpperCase();
+
+let labels = [], hrData = [], spoData = [];
 
 const hrChart = new Chart(document.getElementById('hrChart'), {
   type:'line',
-  data:{labels:[], datasets:[{label:'HR',data:[], borderColor:'#00ffff', fill:true}]},
-  options:{animation:false,responsive:true}
+  data:{labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', fill:true}]},
+  options:{responsive:true, animation:false}
 });
+
 const spoChart = new Chart(document.getElementById('spoChart'), {
   type:'line',
-  data:{labels:[], datasets:[{label:'SpO₂',data:[], borderColor:'#ff00ff', fill:true}]},
-  options:{animation:false,responsive:true}
+  data:{labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', fill:true}]},
+  options:{responsive:true, animation:false}
 });
 
 async function loadData() {
@@ -63,21 +117,26 @@ async function loadData() {
     if (!data || data.length===0) return;
 
     const last = data[data.length-1];
-    document.getElementById('hrVal').innerText = last.heartrate + ' BPM';
-    document.getElementById('spoVal').innerText = last.spo2 + ' %';
+    document.getElementById('hr').innerText = last.heartrate + ' BPM';
+    document.getElementById('spo').innerText = last.spo2 + ' %';
 
-    hrChart.data.labels = data.map(()=> '');
-    hrChart.data.datasets[0].data = data.map(r => r.heartrate);
+    labels.length = hrData.length = spoData.length = 0;
+    data.slice(-100).forEach(r => {
+      labels.push('');
+      hrData.push(r.heartrate);
+      spoData.push(r.spo2);
+    });
+
     hrChart.update();
-
-    spoChart.data.labels = data.map(()=> '');
-    spoChart.data.datasets[0].data = data.map(r => r.spo2);
     spoChart.update();
-  } catch(e) { console.error(e); }
+  } catch(e){
+    console.error('Error fetching device data:', e);
+  }
 }
 
 loadData();
-setInterval(loadData,2000);
+setInterval(loadData, 2000);
 </script>
+
 </body>
 </html>
