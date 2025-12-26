@@ -41,7 +41,6 @@ header button:hover { background: #00bcd4; }
   height: calc(100% - 60px);
   padding: 15px 20px;
   gap: 15px;
-  overflow-y: auto;
 }
 
 /* النتائج */
@@ -68,7 +67,6 @@ header button:hover { background: #00bcd4; }
 }
 
 /* Charts بشكل عمودي ومتناسق */
-
 .charts {
   display: flex;
   flex-direction: column;
@@ -76,12 +74,11 @@ header button:hover { background: #00bcd4; }
 }
 canvas {
   width: 100%;
-  height: 300px; /* زيادة الارتفاع لعرض الرسم بشكل كامل */
+  height: 300px; /* ارتفاع مناسب لرؤية الرسم */
   background: rgba(0, 0, 0, 0.3);
   border-radius: 12px;
   padding: 5px;
 }
-
 </style>
 </head>
 <body>
@@ -113,7 +110,7 @@ canvas {
 
 <script>
 const params = new URLSearchParams(window.location.search);
-const device = params.get('sensor') || 'max1';
+const device = params.get('device') || 'max1';
 document.getElementById('deviceName').innerText = device.toUpperCase();
 
 let labels = [], hrData = [], spoData = [];
@@ -121,13 +118,23 @@ let labels = [], hrData = [], spoData = [];
 const hrChart = new Chart(document.getElementById('hrChart'), {
   type:'line',
   data:{labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', fill:true}]},
-  options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
+  options:{
+    responsive:true,
+    animation:false,
+    maintainAspectRatio:false,
+    scales:{y:{beginAtZero:true}}
+  }
 });
 
 const spoChart = new Chart(document.getElementById('spoChart'), {
   type:'line',
   data:{labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', fill:true}]},
-  options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
+  options:{
+    responsive:true,
+    animation:false,
+    maintainAspectRatio:false,
+    scales:{y:{beginAtZero:true}}
+  }
 });
 
 async function loadData() {
@@ -154,10 +161,10 @@ async function loadData() {
   }
 }
 
+// تحميل أول مرة + تحديث تلقائي
 loadData();
 setInterval(loadData, 2000);
 </script>
 
 </body>
 </html>
-
