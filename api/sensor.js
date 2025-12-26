@@ -51,7 +51,7 @@ export default async function handler(req, res) {
         FROM sensor_data
         WHERE device_id = ${device}
         ORDER BY time ASC
-        LIMIT 100
+      
       `;
 
       return res.status(200).json(rows);
