@@ -4,133 +4,179 @@
 <meta charset="UTF-8">
 <title>Admin Health Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+:root {
+  --primary:#38bdf8;
+  --bg:#020617;
+  --card:rgba(255,255,255,.07);
+  --border:rgba(255,255,255,.15);
+}
+
 body {
   margin:0;
   font-family:Segoe UI, Arial;
-  background:#020617;
+  background:var(--bg);
   color:#e5e7eb;
 }
-header {
-  background:#0f172a;
-  padding:15px 25px;
+
+/* Top bar */
+.top-bar {
   display:flex;
   justify-content:space-between;
   align-items:center;
+  padding:18px 30px;
+  background:#0f172a;
+  border-bottom:1px solid var(--border);
 }
-header h2 { margin:0; color:#38bdf8; }
-header button {
-  margin-left:8px;
-  padding:8px 14px;
+
+.top-bar h2 {
+  margin:0;
+  color:var(--primary);
+}
+
+.top-bar button {
+  margin-left:10px;
+  padding:10px 18px;
+  background:var(--primary);
   border:none;
-  border-radius:6px;
-  background:#38bdf8;
-  color:#020617;
+  border-radius:8px;
   cursor:pointer;
   font-weight:600;
+  color:#020617;
 }
+
+/* Grid */
 .container {
-  padding:25px;
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
   gap:20px;
+  padding:30px;
 }
-.card {
-  background:rgba(255,255,255,.06);
-  border-radius:14px;
-  padding:18px;
+
+/* Card */
+.device-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:22px;
+  box-shadow:0 10px 25px rgba(0,0,0,.4);
 }
-.card h3 { margin-top:0; color:#22d3ee; }
+
+.device-card h3 {
+  margin:0 0 12px;
+  color:var(--primary);
+  cursor:pointer;
+}
+
+.device-card h3:hover {
+  text-decoration:underline;
+}
+
 .data {
   display:flex;
   justify-content:space-between;
-  margin:6px 0;
+  margin:8px 0;
 }
-canvas { height:160px !important; }
+
+.label { opacity:.7; }
+.value { font-weight:600; }
+
+.status {
+  margin-top:10px;
+  font-size:14px;
+  opacity:.7;
+}
 </style>
 </head>
 
 <body>
 
-<header>
+<!-- Top -->
+<div class="top-bar">
   <h2>🩺 Admin Dashboard</h2>
   <div>
     <button onclick="location.href='manage.html'">Patients</button>
     <button onclick="logout()">Logout</button>
   </div>
-</header>
-
-<div class="container">
-  <div class="card" id="max1"></div>
-  <div class="card" id="max2"></div>
-  <div class="card" id="max3"></div>
-  <div class="card" id="max4"></div>
 </div>
 
+<!-- Devices -->
+<div class="container" id="devices"></div>
+
 <script>
-function logout() {
-  localStorage.removeItem('auth');
-  location.href='/login.html';
+// Auth check
+if (localStorage.getItem('auth') !== '1') {
+  location.href = '/login.html';
 }
 
+// Logout
+function logout() {
+  localStorage.removeItem('auth');
+  location.href = '/login.html';
+}
+
+// Devices list
 const devices = ['max1','max2','max3','max4'];
-const charts = {};
+const container = document.getElementById('devices');
 
+// Create cards
 devices.forEach(d => {
-  const card = document.getElementById(d);
+  const card = document.createElement('div');
+  card.className = 'device-card';
+  card.id = d;
   card.innerHTML = `
-    <h3>${d.toUpperCase()}</h3>
-    <div class="data"><span>Heart Rate</span><span id="${d}-hr">--</span></div>
-    <div class="data"><span>SpO₂</span><span id="${d}-spo">--</span></div>
-    <canvas id="${d}-hrChart"></canvas>
-    <canvas id="${d}-spoChart"></canvas>
-  `;
+    <h3 onclick="openDevice('${d}')">${d.toUpperCase()}</h3>
 
-  charts[d] = {
-    hr: new Chart(document.getElementById(`${d}-hrChart`), {
-      type:'line',
-      data:{labels:[],datasets:[{label:'HR',data:[],borderColor:'#22d3ee'}]},
-      options:{animation:false}
-    }),
-    spo: new Chart(document.getElementById(`${d}-spoChart`), {
-      type:'line',
-      data:{labels:[],datasets:[{label:'SpO₂',data:[],borderColor:'#f472b6'}]},
-      options:{animation:false}
-    })
-  };
+    <div class="data">
+      <span class="label">Heart Rate</span>
+      <span class="value" id="${d}-hr">--</span>
+    </div>
+
+    <div class="data">
+      <span class="label">SpO₂</span>
+      <span class="value" id="${d}-spo">--</span>
+    </div>
+
+    <div class="status" id="${d}-time">Waiting for data…</div>
+  `;
+  container.appendChild(card);
 });
 
+// Open device page
+function openDevice(device) {
+  location.href = `device.html?device=${device}`;
+}
+
+// Load sensor data
 async function loadDevice(device) {
   try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
+
     if (!Array.isArray(data) || data.length === 0) return;
 
     const last = data[data.length - 1];
-    document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
-    document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
 
-    charts[device].hr.data.labels = data.map(()=> '');
-    charts[device].hr.data.datasets[0].data = data.map(r=>r.heartrate);
-    charts[device].hr.update();
-
-    charts[device].spo.data.labels = data.map(()=> '');
-    charts[device].spo.data.datasets[0].data = data.map(r=>r.spo2);
-    charts[device].spo.update();
+    document.getElementById(`${device}-hr`).innerText =
+      last.heartrate + ' BPM';
+    document.getElementById(`${device}-spo`).innerText =
+      last.spo2 + ' %';
+    document.getElementById(`${device}-time`).innerText =
+      'Updated: ' + new Date(last.time).toLocaleTimeString();
 
   } catch (e) {
     console.error('Load error', device, e);
   }
 }
 
+// Load all
 function loadAll() {
   devices.forEach(loadDevice);
 }
 
 loadAll();
-setInterval(loadAll, 2500);
+setInterval(loadAll, 2000);
 </script>
 
 </body>
