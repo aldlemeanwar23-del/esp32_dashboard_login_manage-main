@@ -15,6 +15,7 @@ body, html {
   background: #0a0f1a;
   color: #fff;
 }
+
 header {
   display: flex;
   justify-content: space-between;
@@ -24,6 +25,7 @@ header {
   color: #00ffff;
   font-size: 20px;
 }
+
 header button {
   padding: 8px 16px;
   border: none;
@@ -33,6 +35,7 @@ header button {
   font-weight: bold;
   cursor: pointer;
 }
+
 header button:hover { background: #00bcd4; }
 
 .container {
@@ -40,14 +43,14 @@ header button:hover { background: #00bcd4; }
   flex-direction: column;
   height: calc(100% - 60px);
   padding: 15px 20px;
-  gap: 15px;
+  gap: 20px;
 }
 
 /* النتائج */
 .results {
   display: flex;
   justify-content: space-around;
-  gap: 15px;
+  gap: 20px;
 }
 .result-card {
   flex: 1;
@@ -71,10 +74,13 @@ header button:hover { background: #00bcd4; }
   display: flex;
   flex-direction: column;
   gap: 20px;
+  flex-grow: 1;
 }
+
+/* ارتفاع محدد لكل canvas */
 canvas {
   width: 100%;
-  height: 300px; /* ارتفاع مناسب لرؤية الرسم */
+  height: 300px; /* ارتفاع كافي للرسم */
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   padding: 5px;
@@ -109,7 +115,6 @@ canvas {
 </div>
 
 <script>
-// قراءة اسم الجهاز من URL
 const params = new URLSearchParams(window.location.search);
 const device = params.get('device') || 'max1';
 document.getElementById('deviceName').innerText = device.toUpperCase();
@@ -118,41 +123,23 @@ let labels = [], hrData = [], spoData = [];
 
 const hrChart = new Chart(document.getElementById('hrChart'), {
   type:'line',
-  data:{
-    labels,
-    datasets:[{
-      label:'Heart Rate',
-      data:hrData,
-      borderColor:'#00ffff',
-      backgroundColor:'rgba(0,255,255,0.2)',
-      fill:true
-    }]
-  },
+  data:{labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', fill:true}]},
   options:{
     responsive:true,
     animation:false,
     maintainAspectRatio:false,
-    scales:{ y:{ beginAtZero:true } }
+    scales:{y:{beginAtZero:true}}
   }
 });
 
 const spoChart = new Chart(document.getElementById('spoChart'), {
   type:'line',
-  data:{
-    labels,
-    datasets:[{
-      label:'SpO₂',
-      data:spoData,
-      borderColor:'#ff00ff',
-      backgroundColor:'rgba(255,0,255,0.2)',
-      fill:true
-    }]
-  },
+  data:{labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', fill:true}]},
   options:{
     responsive:true,
     animation:false,
     maintainAspectRatio:false,
-    scales:{ y:{ beginAtZero:true } }
+    scales:{y:{beginAtZero:true}}
   }
 });
 
@@ -166,7 +153,6 @@ async function loadData() {
     document.getElementById('hr').innerText = last.heartrate + ' BPM';
     document.getElementById('spo').innerText = last.spo2 + ' %';
 
-    // آخر 50 نقطة فقط لتقليل الضغط على الجارت
     labels.length = hrData.length = spoData.length = 0;
     data.slice(-50).forEach(r => {
       labels.push('');
@@ -181,7 +167,7 @@ async function loadData() {
   }
 }
 
-// تحميل أول مرة + تحديث تلقائي كل ثانيتين
+// تحميل أول مرة + تحديث تلقائي
 loadData();
 setInterval(loadData, 2000);
 </script>
