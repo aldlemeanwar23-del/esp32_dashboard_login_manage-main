@@ -71,14 +71,16 @@ header button:hover { background: #00bcd4; }
   display: flex;
   justify-content: space-between;
   gap: 15px;
+  flex-wrap: wrap; /* ليبقى متجاوبًا على الشاشات الصغيرة */
 }
 canvas {
-  flex: 0 0 10px;  /* عرض ثابت */
-  height: 280px;     /* ارتفاع مصغّر */
+  flex: 0 0 48%;  /* عرض الجارت نصف تقريبًا */
+  height: 280px;  /* ارتفاع مناسب */
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   padding: 5px;
 }
+
 @media(max-width:800px){
   .charts { flex-direction: column; }
 }
