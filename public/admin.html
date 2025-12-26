@@ -53,26 +53,27 @@ body {
   backdrop-filter:blur(14px);
   box-shadow:0 10px 30px rgba(0,0,0,.4);
   transition:.3s;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  min-height: 300px;
+  min-height:300px;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+  align-items:center;
 }
 .device-card:hover { transform:translateY(-4px); }
 .device-card h3 { margin:0 0 15px; color:var(--primary); }
-.data { display:flex; justify-content:space-between; margin:8px 0; width: 100%; }
+.data { display:flex; justify-content:space-between; margin:8px 0; width:100%; }
 .label { opacity:.7; }
 .value { font-weight:600; }
 .empty-message {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #00ffff;
-  font-size: 18px;
-  text-align: center;
-  font-weight: 600;
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, -50%);
+  font-size:18px;
+  font-weight:600;
+  color:#00ffff;
+  text-align:center;
+  display:none;
 }
 .open-btn {
   margin-top:15px;
@@ -146,37 +147,39 @@ async function loadDevice(device) {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
-    const emptyMessage = document.getElementById(`${device}-empty`);
-    const hrValue = document.getElementById(`${device}-hr`);
-    const spoValue = document.getElementById(`${device}-spo`);
+    const emptyMsg = document.getElementById(`${device}-empty`);
+    const hrVal = document.getElementById(`${device}-hr`);
+    const spoVal = document.getElementById(`${device}-spo`);
+    const hrChart = charts[device].hrChart;
+    const spoChart = charts[device].spoChart;
 
     if (!data || data.length === 0) {
-      // الجهاز مفصول
-      emptyMessage.style.display = 'block';
-      hrValue.innerText = '';
-      spoValue.innerText = '';
-      charts[device].hrChart.data.labels = [];
-      charts[device].hrChart.data.datasets[0].data = [];
-      charts[device].hrChart.update();
-      charts[device].spoChart.data.labels = [];
-      charts[device].spoChart.data.datasets[0].data = [];
-      charts[device].spoChart.update();
+      // عرض "الجهاز متاح"
+      emptyMsg.style.display = 'block';
+      hrVal.innerText = '';
+      spoVal.innerText = '';
+      hrChart.data.labels = [];
+      hrChart.data.datasets[0].data = [];
+      hrChart.update();
+      spoChart.data.labels = [];
+      spoChart.data.datasets[0].data = [];
+      spoChart.update();
       return;
     }
 
-    // البيانات موجودة
-    emptyMessage.style.display = 'none';
+    // عند وجود بيانات
+    emptyMsg.style.display = 'none';
     const last = data[data.length-1];
-    hrValue.innerText = last.heartrate + ' BPM';
-    spoValue.innerText = last.spo2 + ' %';
+    hrVal.innerText = last.heartrate + ' BPM';
+    spoVal.innerText = last.spo2 + ' %';
 
-    charts[device].hrChart.data.labels = data.map(()=> '');
-    charts[device].hrChart.data.datasets[0].data = data.map(r => r.heartrate);
-    charts[device].hrChart.update();
+    hrChart.data.labels = data.map(()=> '');
+    hrChart.data.datasets[0].data = data.map(r => r.heartrate);
+    hrChart.update();
 
-    charts[device].spoChart.data.labels = data.map(()=> '');
-    charts[device].spoChart.data.datasets[0].data = data.map(r => r.spo2);
-    charts[device].spoChart.update();
+    spoChart.data.labels = data.map(()=> '');
+    spoChart.data.datasets[0].data = data.map(r => r.spo2);
+    spoChart.update();
 
   } catch(e) {
     console.error('Error loading device', device, e);
