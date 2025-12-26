@@ -1,31 +1,27 @@
 import { neon } from "@neondatabase/serverless";
 
 const sql = neon(process.env.DATABASE_URL);
-
-// الأجهزة المسموحة
 const allowedDevices = ["max1", "max2", "max3", "max4"];
 
 export default async function handler(req, res) {
   try {
-    // =========================
-    // 📥 POST (ESP32)
-    // =========================
+
+    /* =======================
+       POST (ESP32 → Database)
+       ======================= */
     if (req.method === "POST") {
       const { device_id, heartrate, spo2 } = req.body || {};
 
       if (!allowedDevices.includes(device_id)) {
         return res.status(400).json({
           message: "Invalid device (must be max1..max4)",
-          received: device_id || ""
+          received: device_id
         });
       }
 
-      if (
-        typeof heartrate !== "number" ||
-        typeof spo2 !== "number"
-      ) {
+      if (typeof heartrate !== "number" || typeof spo2 !== "number") {
         return res.status(400).json({
-          message: "Invalid data types"
+          message: "heartrate and spo2 must be numbers"
         });
       }
 
@@ -34,18 +30,19 @@ export default async function handler(req, res) {
         VALUES (${device_id}, ${heartrate}, ${spo2})
       `;
 
-      return res.json({ success: true });
+      return res.status(200).json({ message: "Data saved successfully" });
     }
 
-    // =========================
-    // 📤 GET (Dashboard)
-    // =========================
+    /* =======================
+       GET (Dashboard ← DB)
+       ======================= */
     if (req.method === "GET") {
       const device = req.query.device;
 
       if (!allowedDevices.includes(device)) {
         return res.status(400).json({
-          message: "Invalid device (must be max1..max4)"
+          message: "Invalid device (must be max1..max4)",
+          received: device
         });
       }
 
@@ -57,15 +54,14 @@ export default async function handler(req, res) {
         LIMIT 100
       `;
 
-      return res.json(rows);
+      return res.status(200).json(rows);
     }
 
-    // =========================
-    res.status(405).json({ message: "Method not allowed" });
+    return res.status(405).json({ message: "Method not allowed" });
 
   } catch (err) {
-    console.error("API ERROR:", err);
-    res.status(500).json({
+    console.error("API Error:", err);
+    return res.status(500).json({
       error: "Server error",
       details: err.message
     });
