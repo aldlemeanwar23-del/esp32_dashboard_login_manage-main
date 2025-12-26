@@ -8,7 +8,6 @@
 
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
 body, html {
   width: 100%;
   height: 100%;
@@ -16,7 +15,6 @@ body, html {
   background: #0a0f1a;
   color: #fff;
 }
-
 header {
   display: flex;
   justify-content: space-between;
@@ -26,7 +24,6 @@ header {
   color: #00ffff;
   font-size: 20px;
 }
-
 header button {
   padding: 8px 16px;
   border: none;
@@ -36,55 +33,54 @@ header button {
   font-weight: bold;
   cursor: pointer;
 }
-
 header button:hover { background: #00bcd4; }
 
 .container {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  gap: 20px;
-  width: 100%;
+  height: calc(100% - 60px);
+  padding: 15px 20px;
+  gap: 15px;
 }
 
 /* النتائج */
 .results {
   display: flex;
-  justify-content: center;
-  gap: 20px;
-  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 15px;
 }
 .result-card {
-  flex: 0 0 180px;
+  flex: 1;
   background: rgba(0, 255, 255, 0.1);
-  padding: 12px;
+  padding: 15px;
   border-radius: 12px;
   text-align: center;
 }
 .result-card h3 {
-  font-size: 14px;
+  font-size: 16px;
   color: #00ffff;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .result-card .value {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: bold;
 }
 
-/* Charts أفقي */
+/* Charts */
 .charts {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   gap: 15px;
-  flex-wrap: wrap;
 }
 canvas {
-  flex: 0 0 250px;  /* عرض ثابت */
-  height: 180px;     /* ارتفاع مصغّر */
-  background: rgba(0, 0, 0, 0.2);
+  flex: 1;
+  height: 200px;
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 12px;
   padding: 5px;
+}
+@media(max-width:800px){
+  .charts { flex-direction: column; }
 }
 </style>
 </head>
@@ -108,7 +104,7 @@ canvas {
     </div>
   </div>
 
-  <!-- الرسوم البيانية بالتوازي -->
+  <!-- الرسوم البيانية الصغيرة بالتوازي -->
   <div class="charts">
     <canvas id="hrChart"></canvas>
     <canvas id="spoChart"></canvas>
@@ -117,7 +113,7 @@ canvas {
 
 <script>
 const params = new URLSearchParams(window.location.search);
-const device = params.get('device') || 'max1';
+const device = params.get('sensor') || 'max1';
 document.getElementById('deviceName').innerText = device.toUpperCase();
 
 let labels = [], hrData = [], spoData = [];
@@ -145,7 +141,7 @@ async function loadData() {
     document.getElementById('spo').innerText = last.spo2 + ' %';
 
     labels.length = hrData.length = spoData.length = 0;
-    data.slice(-50).forEach(r => {
+    data.slice(-50).forEach(r => { // عرض آخر 50 نقطة لتقليل حجم الرسم
       labels.push('');
       hrData.push(r.heartrate);
       spoData.push(r.spo2);
