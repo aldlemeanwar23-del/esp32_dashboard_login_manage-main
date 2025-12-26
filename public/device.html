@@ -8,6 +8,7 @@
 
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
 body, html {
   width: 100%;
   height: 100%;
@@ -49,11 +50,12 @@ header button:hover { background: #00bcd4; }
 /* النتائج */
 .results {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-around;
   gap: 20px;
 }
 .result-card {
-  flex: 1;
+  flex: 1 1 200px;
   background: rgba(0, 255, 255, 0.1);
   padding: 15px;
   border-radius: 12px;
@@ -69,7 +71,7 @@ header button:hover { background: #00bcd4; }
   font-weight: bold;
 }
 
-/* Charts بشكل عمودي */
+/* Charts */
 .charts {
   display: flex;
   flex-direction: column;
@@ -77,13 +79,23 @@ header button:hover { background: #00bcd4; }
   flex-grow: 1;
 }
 
-/* ارتفاع محدد لكل canvas */
+/* canvas ارتفاع متجاوب */
 canvas {
   width: 100%;
-  height: 300px; /* ارتفاع كافي للرسم */
+  height: 35vh; /* يملأ جزء مناسب من الشاشة */
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   padding: 5px;
+}
+
+/* Responsive adjustments */
+@media(min-width:1200px){
+  .charts {
+    flex-direction: row;
+  }
+  canvas {
+    height: 400px;
+  }
 }
 </style>
 </head>
@@ -107,7 +119,7 @@ canvas {
     </div>
   </div>
 
-  <!-- الرسوم البيانية بشكل عمودي -->
+  <!-- الرسوم البيانية -->
   <div class="charts">
     <canvas id="hrChart"></canvas>
     <canvas id="spoChart"></canvas>
