@@ -40,7 +40,7 @@ header button:hover { background: #00bcd4; }
   flex-direction: column;
   height: calc(100% - 60px);
   padding: 15px 20px;
-  gap: 15px;
+  gap: 20px;
 }
 
 /* النتائج */
@@ -66,22 +66,22 @@ header button:hover { background: #00bcd4; }
   font-weight: bold;
 }
 
-/* Charts */
+/* Charts متوازية */
 .charts {
   display: flex;
-  justify-content: space-between;
-  gap: 15px;
+  justify-content: center;
+  gap: 20px;
 }
 canvas {
-  flex: 25px;  /* عرض الجارت نصف تقريبًا */
-  height: 380px;  /* ارتفاع مناسب */
+  width: 45%;       /* كل رسم نصف عرض الحاوية تقريبًا */
+  height: 200px;    /* ارتفاع مناسب */
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   padding: 5px;
 }
-
 @media(max-width:800px){
-  .charts { flex-direction: column; }
+  .charts { flex-direction: column; align-items: center; }
+  canvas { width: 90%; margin-bottom: 15px; }
 }
 </style>
 </head>
@@ -105,7 +105,7 @@ canvas {
     </div>
   </div>
 
-  <!-- الرسوم البيانية الصغيرة بالتوازي -->
+  <!-- الرسوم البيانية بالتوازي -->
   <div class="charts">
     <canvas id="hrChart"></canvas>
     <canvas id="spoChart"></canvas>
@@ -114,7 +114,7 @@ canvas {
 
 <script>
 const params = new URLSearchParams(window.location.search);
-const device = params.get('sensor') || 'max1';
+const device = params.get('device') || 'max1';
 document.getElementById('deviceName').innerText = device.toUpperCase();
 
 let labels = [], hrData = [], spoData = [];
@@ -122,13 +122,13 @@ let labels = [], hrData = [], spoData = [];
 const hrChart = new Chart(document.getElementById('hrChart'), {
   type:'line',
   data:{labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', fill:true}]},
-  options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
+  options:{responsive:true, maintainAspectRatio:false, animation:false, scales:{y:{beginAtZero:true}}}
 });
 
 const spoChart = new Chart(document.getElementById('spoChart'), {
   type:'line',
   data:{labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', fill:true}]},
-  options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
+  options:{responsive:true, maintainAspectRatio:false, animation:false, scales:{y:{beginAtZero:true}}}
 });
 
 async function loadData() {
@@ -142,7 +142,7 @@ async function loadData() {
     document.getElementById('spo').innerText = last.spo2 + ' %';
 
     labels.length = hrData.length = spoData.length = 0;
-    data.slice(-50).forEach(r => { // عرض آخر 50 نقطة لتقليل حجم الرسم
+    data.slice(-50).forEach(r => {
       labels.push('');
       hrData.push(r.heartrate);
       spoData.push(r.spo2);
@@ -155,7 +155,6 @@ async function loadData() {
   }
 }
 
-// تحميل أول مرة + تحديث تلقائي
 loadData();
 setInterval(loadData, 2000);
 </script>
