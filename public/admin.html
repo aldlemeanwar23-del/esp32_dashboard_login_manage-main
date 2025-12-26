@@ -7,12 +7,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-:root {
-  --primary:#0ea5e9;
-  --bg:#020617;
-  --card:rgba(255,255,255,.08);
-  --border:rgba(255,255,255,.15);
-}
 body {
   margin:0;
   font-family:Segoe UI, Arial;
@@ -21,20 +15,17 @@ body {
 }
 .top-bar {
   padding:18px 30px;
-  border-bottom:1px solid var(--border);
+  border-bottom:1px solid #334155;
 }
-.top-bar h2 { margin:0; color:var(--primary); }
-
 .container {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
   gap:20px;
   padding:30px;
 }
-
 .device-card {
-  background:var(--card);
-  border:1px solid var(--border);
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.15);
   border-radius:16px;
   padding:22px;
   min-height:260px;
@@ -44,34 +35,24 @@ body {
   align-items:center;
   text-align:center;
 }
-
 .device-card.active {
   align-items:stretch;
   text-align:left;
 }
-
-.device-card h3 {
-  color:var(--primary);
-  margin-bottom:12px;
-}
-
 .available {
   font-size:20px;
   font-weight:600;
   color:#22c55e;
 }
-
 .data {
   display:flex;
   justify-content:space-between;
   margin:6px 0;
 }
-
 canvas {
   height:110px !important;
   margin-top:10px;
 }
-
 .open-btn {
   margin-top:14px;
   width:100%;
@@ -80,12 +61,9 @@ canvas {
   border-radius:10px;
   background:#22c55e;
   font-weight:700;
-  cursor:pointer;
 }
-
 .open-btn:disabled {
   background:#334155;
-  cursor:not-allowed;
 }
 </style>
 </head>
@@ -106,6 +84,7 @@ canvas {
 <script>
 const devices = ['max1','max2','max3','max4'];
 const charts = {};
+const OFFLINE_TIMEOUT = 10 * 1000; // 10 ثواني
 
 function showAvailable(card, device) {
   card.className = 'device-card';
@@ -121,13 +100,10 @@ function showActive(card, device) {
   card.className = 'device-card active';
   card.innerHTML = `
     <h3>${device.toUpperCase()}</h3>
-
-    <div class="data"><span>Heart Rate</span><span id="${device}-hr">--</span></div>
-    <div class="data"><span>SpO₂</span><span id="${device}-spo">--</span></div>
-
+    <div class="data"><span>Heart Rate</span><span id="${device}-hr"></span></div>
+    <div class="data"><span>SpO₂</span><span id="${device}-spo"></span></div>
     <canvas id="${device}-hrChart"></canvas>
     <canvas id="${device}-spoChart"></canvas>
-
     <button class="open-btn"
       onclick="location.href='device.html?device=${device}'">
       Open Device
@@ -138,12 +114,12 @@ function showActive(card, device) {
     hr: new Chart(document.getElementById(`${device}-hrChart`), {
       type:'line',
       data:{labels:[],datasets:[{data:[],borderColor:'#00ffff',fill:true}]},
-      options:{responsive:true,animation:false}
+      options:{animation:false,responsive:true}
     }),
     spo: new Chart(document.getElementById(`${device}-spoChart`), {
       type:'line',
       data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff',fill:true}]},
-      options:{responsive:true,animation:false}
+      options:{animation:false,responsive:true}
     })
   };
 }
@@ -160,11 +136,21 @@ async function loadDevice(device) {
       return;
     }
 
+    const last = data[data.length - 1];
+    const lastTime = new Date(last.time).getTime();
+    const now = Date.now();
+
+    // 🔴 الجهاز مفصول
+    if (now - lastTime > OFFLINE_TIMEOUT) {
+      showAvailable(card, device);
+      return;
+    }
+
+    // 🟢 الجهاز متصل
     if (!charts[device]) {
       showActive(card, device);
     }
 
-    const last = data[data.length - 1];
     document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
     document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
 
@@ -176,7 +162,7 @@ async function loadDevice(device) {
     charts[device].spo.data.datasets[0].data = data.map(r => r.spo2);
     charts[device].spo.update();
 
-  } catch (e) {
+  } catch {
     showAvailable(card, device);
   }
 }
