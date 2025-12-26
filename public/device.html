@@ -15,6 +15,8 @@ body, html {
   background: #0a0f1a;
   color: #fff;
 }
+
+/* Header */
 header {
   display: flex;
   justify-content: space-between;
@@ -35,25 +37,24 @@ header button {
 }
 header button:hover { background: #00bcd4; }
 
+/* Container */
 .container {
   display: flex;
   flex-direction: column;
-  align-items: center;
   height: calc(100% - 60px);
   padding: 15px 20px;
-  gap: 20px;
+  gap: 15px;
+  overflow-y: auto;
 }
 
-/* النتائج */
+/* Results */
 .results {
   display: flex;
-  justify-content: center;
-  gap: 20px;
-  width: 100%;
+  justify-content: space-around;
+  gap: 15px;
 }
 .result-card {
   flex: 1;
-  max-width: 200px;
   background: rgba(0, 255, 255, 0.1);
   padding: 15px;
   border-radius: 12px;
@@ -69,21 +70,19 @@ header button:hover { background: #00bcd4; }
   font-weight: bold;
 }
 
-/* Charts عمودية */
+/* Charts عمودي */
 .charts {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 15px;
   width: 100%;
 }
 canvas {
-  flex: none;
-  width: 80%;
-  height: 200px;
+  width: 80%;   /* عرض مخفف */
+  height: 200px; /* ارتفاع مناسب */
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
-  padding: 5px;
 }
 </style>
 </head>
@@ -124,20 +123,30 @@ let labels = [], hrData = [], spoData = [];
 const hrChart = new Chart(document.getElementById('hrChart'), {
   type:'line',
   data:{labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', fill:true}]},
-  options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
+  options:{
+    responsive:true,
+    animation:false,
+    maintainAspectRatio:false,
+    scales:{y:{beginAtZero:true}}
+  }
 });
 
 const spoChart = new Chart(document.getElementById('spoChart'), {
   type:'line',
   data:{labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', fill:true}]},
-  options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
+  options:{
+    responsive:true,
+    animation:false,
+    maintainAspectRatio:false,
+    scales:{y:{beginAtZero:true}}
+  }
 });
 
 async function loadData() {
   try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
-    if (!data || data.length === 0) return;
+    if (!data || data.length===0) return;
 
     const last = data[data.length-1];
     document.getElementById('hr').innerText = last.heartrate + ' BPM';
@@ -152,12 +161,12 @@ async function loadData() {
 
     hrChart.update();
     spoChart.update();
-  } catch(e) {
+  } catch(e){
     console.error('Error fetching device data:', e);
   }
 }
 
-// تحميل أول مرة + تحديث تلقائي
+// التحميل أول مرة + تحديث تلقائي
 loadData();
 setInterval(loadData, 2000);
 </script>
