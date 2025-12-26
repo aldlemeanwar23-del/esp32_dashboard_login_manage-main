@@ -14,7 +14,6 @@ body, html {
   font-family: 'Segoe UI', Arial, sans-serif;
   background: #0a0f1a;
   color: #fff;
-  overflow: hidden;
 }
 header {
   display: flex;
@@ -69,12 +68,13 @@ header button:hover { background: #00bcd4; }
 
 /* Charts */
 .charts {
-  flex: 1;
   display: flex;
+  justify-content: space-between;
   gap: 15px;
 }
 canvas {
   flex: 1;
+  height: 200px;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 12px;
   padding: 5px;
@@ -104,7 +104,7 @@ canvas {
     </div>
   </div>
 
-  <!-- الرسوم البيانية -->
+  <!-- الرسوم البيانية الصغيرة بالتوازي -->
   <div class="charts">
     <canvas id="hrChart"></canvas>
     <canvas id="spoChart"></canvas>
@@ -141,7 +141,7 @@ async function loadData() {
     document.getElementById('spo').innerText = last.spo2 + ' %';
 
     labels.length = hrData.length = spoData.length = 0;
-    data.slice(-100).forEach(r => {
+    data.slice(-50).forEach(r => { // عرض آخر 50 نقطة لتقليل حجم الرسم
       labels.push('');
       hrData.push(r.heartrate);
       spoData.push(r.spo2);
