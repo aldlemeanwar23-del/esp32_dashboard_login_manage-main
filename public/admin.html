@@ -13,78 +13,90 @@ body {
   background:#020617;
   color:#e5e7eb;
 }
-.top-bar {
-  padding:16px 30px;
-  background:#020617;
-  border-bottom:1px solid #334155;
+header {
+  background:#0f172a;
+  padding:15px 25px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
-.top-bar h2 { color:#38bdf8; margin:0; }
-
+header h2 { margin:0; color:#38bdf8; }
+header button {
+  margin-left:8px;
+  padding:8px 14px;
+  border:none;
+  border-radius:6px;
+  background:#38bdf8;
+  color:#020617;
+  cursor:pointer;
+  font-weight:600;
+}
 .container {
+  padding:25px;
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
   gap:20px;
-  padding:30px;
 }
-
-.device-card {
-  background:#020617;
-  border:1px solid #334155;
+.card {
+  background:rgba(255,255,255,.06);
   border-radius:14px;
-  padding:20px;
+  padding:18px;
 }
-
-.device-card h3 {
-  color:#38bdf8;
-  margin-top:0;
-}
-
+.card h3 { margin-top:0; color:#22d3ee; }
 .data {
   display:flex;
   justify-content:space-between;
   margin:6px 0;
 }
-.value { font-weight:bold; }
-canvas { height:140px !important; }
+canvas { height:160px !important; }
 </style>
 </head>
 
 <body>
 
-<div class="top-bar">
-  <h2>🩺 Admin Health Dashboard</h2>
-</div>
+<header>
+  <h2>🩺 Admin Dashboard</h2>
+  <div>
+    <button onclick="location.href='manage.html'">Patients</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+</header>
 
 <div class="container">
-  <div class="device-card" id="max1"></div>
-  <div class="device-card" id="max2"></div>
-  <div class="device-card" id="max3"></div>
-  <div class="device-card" id="max4"></div>
+  <div class="card" id="max1"></div>
+  <div class="card" id="max2"></div>
+  <div class="card" id="max3"></div>
+  <div class="card" id="max4"></div>
 </div>
 
 <script>
-const devices = ["max1","max2","max3","max4"];
+function logout() {
+  localStorage.removeItem('auth');
+  location.href='/login.html';
+}
+
+const devices = ['max1','max2','max3','max4'];
 const charts = {};
 
-devices.forEach(device => {
-  const card = document.getElementById(device);
+devices.forEach(d => {
+  const card = document.getElementById(d);
   card.innerHTML = `
-    <h3>${device.toUpperCase()}</h3>
-    <div class="data"><span>Heart Rate</span><span id="${device}-hr">--</span></div>
-    <div class="data"><span>SpO₂</span><span id="${device}-spo">--</span></div>
-    <canvas id="${device}-hrChart"></canvas>
-    <canvas id="${device}-spoChart"></canvas>
+    <h3>${d.toUpperCase()}</h3>
+    <div class="data"><span>Heart Rate</span><span id="${d}-hr">--</span></div>
+    <div class="data"><span>SpO₂</span><span id="${d}-spo">--</span></div>
+    <canvas id="${d}-hrChart"></canvas>
+    <canvas id="${d}-spoChart"></canvas>
   `;
 
-  charts[device] = {
-    hr: new Chart(document.getElementById(`${device}-hrChart`), {
-      type:"line",
-      data:{labels:[],datasets:[{data:[],borderColor:"#22d3ee",fill:false}]},
+  charts[d] = {
+    hr: new Chart(document.getElementById(`${d}-hrChart`), {
+      type:'line',
+      data:{labels:[],datasets:[{label:'HR',data:[],borderColor:'#22d3ee'}]},
       options:{animation:false}
     }),
-    spo: new Chart(document.getElementById(`${device}-spoChart`), {
-      type:"line",
-      data:{labels:[],datasets:[{data:[],borderColor:"#f472b6",fill:false}]},
+    spo: new Chart(document.getElementById(`${d}-spoChart`), {
+      type:'line',
+      data:{labels:[],datasets:[{label:'SpO₂',data:[],borderColor:'#f472b6'}]},
       options:{animation:false}
     })
   };
@@ -94,35 +106,22 @@ async function loadDevice(device) {
   try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
-
-    if (!Array.isArray(data) || data.length === 0) {
-      document.getElementById(`${device}-hr`).innerText = "--";
-      document.getElementById(`${device}-spo`).innerText = "--";
-      return;
-    }
+    if (!Array.isArray(data) || data.length === 0) return;
 
     const last = data[data.length - 1];
+    document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
+    document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
 
-    document.getElementById(`${device}-hr`).innerText =
-      (last.heartrate ?? "--") + " BPM";
-
-    document.getElementById(`${device}-spo`).innerText =
-      (last.spo2 ?? "--") + " %";
-
-    const recent = data.slice(-20);
-
-    charts[device].hr.data.labels = recent.map(()=> "");
-    charts[device].hr.data.datasets[0].data =
-      recent.map(r => r.heartrate || 0);
+    charts[device].hr.data.labels = data.map(()=> '');
+    charts[device].hr.data.datasets[0].data = data.map(r=>r.heartrate);
     charts[device].hr.update();
 
-    charts[device].spo.data.labels = recent.map(()=> "");
-    charts[device].spo.data.datasets[0].data =
-      recent.map(r => r.spo2 || 0);
+    charts[device].spo.data.labels = data.map(()=> '');
+    charts[device].spo.data.datasets[0].data = data.map(r=>r.spo2);
     charts[device].spo.update();
 
   } catch (e) {
-    console.error("Load error", device, e);
+    console.error('Load error', device, e);
   }
 }
 
@@ -131,7 +130,7 @@ function loadAll() {
 }
 
 loadAll();
-setInterval(loadAll, 2000);
+setInterval(loadAll, 2500);
 </script>
 
 </body>
