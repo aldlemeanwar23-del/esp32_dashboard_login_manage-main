@@ -69,9 +69,10 @@ header button:hover { background: #00bcd4; }
 /* Charts */
 .charts {
   display: flex;
-  justify-content: space-between;
-  gap: 15px;
+  flex-direction: column;  /* يجعل العناصر فوق بعض */
+  gap: 15px;               /* المسافة بين الجارتين */
 }
+
 canvas {
   flex: 1;
   height: 150px;
