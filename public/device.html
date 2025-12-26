@@ -76,7 +76,9 @@ header button:hover { background:#00bcd4; }
 
 <script>
 const params = new URLSearchParams(window.location.search);
-const device = params.get('device') || 'max1';
+const device = new URLSearchParams(window.location.search).get('device');
+
+//const device = params.get('device') || 'max1';
 document.getElementById('deviceName').innerText = device.toUpperCase();
 
 let labels=[], hrData=[], spoData=[];
