@@ -69,12 +69,13 @@ header button:hover { background: #00bcd4; }
 /* Charts متوازية */
 .charts {
   display: flex;
-justify-content: space-between;
-  gap: 15px;
+  flex-direction: column; /* تعديل ليصبح عمودي */
+  align-items: center;    /* تمركز الجارت في المنتصف */
+  gap: 20px;              /* مسافة بين الجارت */
 }
 canvas {
-  width: 45%;       /* كل رسم نصف عرض الحاوية تقريبًا */
-  height: 200px;    /* ارتفاع مناسب */
+  width: 80%;     /* عرض الجارت */
+  height: 200px;  /* ارتفاع مناسب */
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   padding: 5px;
