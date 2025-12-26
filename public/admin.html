@@ -9,6 +9,7 @@
 <style>
 :root {
   --primary:#0ea5e9;
+  --bg:#020617;
   --card:rgba(255,255,255,.08);
   --border:rgba(255,255,255,.15);
 }
@@ -23,7 +24,7 @@ body {
   justify-content:space-between;
   align-items:center;
   padding:18px 30px;
-  background:rgba(2,6,23,.8);
+  background:#020617;
   border-bottom:1px solid var(--border);
 }
 .top-bar h2 { margin:0; color:var(--primary); }
@@ -36,65 +37,58 @@ body {
   color:#fff;
   font-weight:600;
 }
-.top-bar button:hover { opacity:.85; }
-
 .container {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
   gap:20px;
   padding:30px;
 }
-
 .device-card {
-  position: relative;
   background:var(--card);
   border:1px solid var(--border);
   border-radius:16px;
   padding:22px;
-  backdrop-filter:blur(14px);
-  box-shadow:0 10px 30px rgba(0,0,0,.4);
-  transition:.3s;
-  min-height:300px;
+  min-height:260px;
+  position:relative;
+}
+.device-card h3 {
+  margin:0 0 10px;
+  color:var(--primary);
+}
+.data {
   display:flex;
-  flex-direction:column;
-  justify-content:flex-start;
-  align-items:center;
+  justify-content:space-between;
+  margin:6px 0;
 }
-.device-card:hover { transform:translateY(-4px); }
-
-.device-card h3 { margin:0 0 15px; color:var(--primary); }
-.data { display:flex; justify-content:space-between; margin:8px 0; width:100%; }
-.label { opacity:.7; }
-.value { font-weight:600; }
-
-.empty-message {
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%);
-  font-size:18px;
-  font-weight:600;
-  color:#00ffff;
-  text-align:center;
-  display:none;
+canvas {
+  height:110px !important;
+  margin-top:8px;
 }
-
 .open-btn {
-  margin-top:15px;
+  margin-top:10px;
   width:100%;
-  padding:10px;
+  padding:8px;
   border-radius:10px;
   border:none;
   background:#22c55e;
-  color:#020617;
   font-weight:700;
   cursor:pointer;
 }
-.open-btn:hover { opacity:.85; }
 
-canvas { height:120px !important; width:100%; display:block; margin-top:10px; }
+/* رسالة الجهاز متاح */
+.empty {
+  position:absolute;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  font-weight:bold;
+  color:#22c55e;
+}
 </style>
 </head>
+
 <body>
 
 <div class="top-bar">
@@ -113,7 +107,7 @@ canvas { height:120px !important; width:100%; display:block; margin-top:10px; }
 </div>
 
 <script>
-function logout() {
+function logout(){
   localStorage.removeItem('auth');
   location.href='/login.html';
 }
@@ -121,93 +115,104 @@ function logout() {
 const devices = ['max1','max2','max3','max4'];
 const charts = {};
 
-devices.forEach(device => {
+devices.forEach(device=>{
   const card = document.getElementById(device);
   card.innerHTML = `
     <h3>${device.toUpperCase()}</h3>
-    <div class="data"><span class="label">Heart Rate</span> <span class="value" id="${device}-hr"></span></div>
-    <div class="data"><span class="label">SpO₂</span> <span class="value" id="${device}-spo"></span></div>
-    <canvas id="${device}-hrChart"></canvas>
-    <canvas id="${device}-spoChart"></canvas>
-    <div class="empty-message" id="${device}-empty">الجهاز متاح</div>
-    <button class="open-btn" onclick="location.href='device.html?device=${device}'">Open Device</button>
+
+    <div class="content">
+      <div class="data"><span>Heart Rate</span><span id="${device}-hr">--</span></div>
+      <div class="data"><span>SpO₂</span><span id="${device}-spo">--</span></div>
+
+      <canvas id="${device}-hrChart"></canvas>
+      <canvas id="${device}-spoChart"></canvas>
+
+      <button class="open-btn"
+        onclick="location.href='device.html?device=${device}'">
+        Open Device
+      </button>
+    </div>
+
+    <div class="empty" id="${device}-empty">الجهاز متاح</div>
   `;
 
-  charts[device] = {
-    hrChart: new Chart(document.getElementById(`${device}-hrChart`), {
-      type:'line',
-      data:{labels:[],datasets:[{label:'HR',data:[],borderColor:'#00ffff',fill:true}]},
-      options:{animation:false,responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
-    }),
-    spoChart: new Chart(document.getElementById(`${device}-spoChart`), {
-      type:'line',
-      data:{labels:[],datasets:[{label:'SpO₂',data:[],borderColor:'#ff00ff',fill:true}]},
-      options:{animation:false,responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
-    })
-  };
+  charts[device] = { hr:null, spo:null };
 });
 
-async function loadDevice(device) {
-  try {
+async function loadDevice(device){
+  try{
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
-    const emptyMsg = document.getElementById(`${device}-empty`);
-    const hrVal = document.getElementById(`${device}-hr`);
-    const spoVal = document.getElementById(`${device}-spo`);
+    const empty = document.getElementById(`${device}-empty`);
+    const hrEl = document.getElementById(`${device}-hr`);
+    const spoEl = document.getElementById(`${device}-spo`);
     const hrCanvas = document.getElementById(`${device}-hrChart`);
     const spoCanvas = document.getElementById(`${device}-spoChart`);
-    const hrChart = charts[device].hrChart;
-    const spoChart = charts[device].spoChart;
 
-    if (!data || data.length === 0) {
-      // عرض "الجهاز متاح"
-      emptyMsg.style.display = 'block';
-      hrVal.style.display = 'none';
-      spoVal.style.display = 'none';
-      hrCanvas.style.display = 'none';
-      spoCanvas.style.display = 'none';
+    // ❌ لا توجد بيانات → مسح كل شيء
+    if(!data || data.length === 0){
+      empty.style.display='flex';
 
-      // مسح بيانات الرسم البياني
-      hrChart.data.labels = [];
-      hrChart.data.datasets[0].data = [];
-      hrChart.update();
-      spoChart.data.labels = [];
-      spoChart.data.datasets[0].data = [];
-      spoChart.update();
+      hrEl.innerText='--';
+      spoEl.innerText='--';
+
+      hrCanvas.style.display='none';
+      spoCanvas.style.display='none';
+
+      if(charts[device].hr){ charts[device].hr.destroy(); charts[device].hr=null; }
+      if(charts[device].spo){ charts[device].spo.destroy(); charts[device].spo=null; }
+
       return;
     }
 
-    // عند وجود بيانات
-    emptyMsg.style.display = 'none';
-    hrVal.style.display = 'inline';
-    spoVal.style.display = 'inline';
-    hrCanvas.style.display = 'block';
-    spoCanvas.style.display = 'block';
+    // ✅ توجد بيانات
+    empty.style.display='none';
+    hrCanvas.style.display='block';
+    spoCanvas.style.display='block';
 
     const last = data[data.length-1];
-    hrVal.innerText = last.heartrate + ' BPM';
-    spoVal.innerText = last.spo2 + ' %';
+    hrEl.innerText = last.heartrate + ' BPM';
+    spoEl.innerText = last.spo2 + ' %';
 
-    hrChart.data.labels = data.map(()=> '');
-    hrChart.data.datasets[0].data = data.map(r => r.heartrate);
-    hrChart.update();
+    const labels = data.map(()=>'');
 
-    spoChart.data.labels = data.map(()=> '');
-    spoChart.data.datasets[0].data = data.map(r => r.spo2);
-    spoChart.update();
+    if(!charts[device].hr){
+      charts[device].hr = new Chart(hrCanvas,{
+        type:'line',
+        data:{labels,datasets:[{data:data.map(r=>r.heartrate),borderColor:'#00ffff',fill:true}]},
+        options:{animation:false,responsive:true,maintainAspectRatio:false}
+      });
+    } else {
+      charts[device].hr.data.labels = labels;
+      charts[device].hr.data.datasets[0].data = data.map(r=>r.heartrate);
+      charts[device].hr.update();
+    }
 
-  } catch(e) {
-    console.error('Error loading device', device, e);
+    if(!charts[device].spo){
+      charts[device].spo = new Chart(spoCanvas,{
+        type:'line',
+        data:{labels,datasets:[{data:data.map(r=>r.spo2),borderColor:'#ff00ff',fill:true}]},
+        options:{animation:false,responsive:true,maintainAspectRatio:false}
+      });
+    } else {
+      charts[device].spo.data.labels = labels;
+      charts[device].spo.data.datasets[0].data = data.map(r=>r.spo2);
+      charts[device].spo.update();
+    }
+
+  }catch(e){
+    console.error('Device error',device,e);
   }
 }
 
-function loadAllDevices() {
+function loadAll(){
   devices.forEach(loadDevice);
 }
 
-loadAllDevices();
-setInterval(loadAllDevices,2000);
+loadAll();
+setInterval(loadAll,2000);
 </script>
+
 </body>
 </html>
