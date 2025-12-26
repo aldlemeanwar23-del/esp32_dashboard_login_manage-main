@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Device Details</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  margin:0;
+  font-family:Segoe UI, Arial;
+  background:#020617;
+  color:#e5e7eb;
+}
+header {
+  background:#0f172a;
+  padding:15px 25px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+header h2 {
+  margin:0;
+  color:#38bdf8;
+}
+header button {
+  padding:8px 14px;
+  border:none;
+  border-radius:6px;
+  background:#38bdf8;
+  color:#020617;
+  font-weight:600;
+  cursor:pointer;
+}
+.container {
+  padding:30px;
+  max-width:900px;
+  margin:auto;
+}
+.card {
+  background:rgba(255,255,255,.06);
+  border-radius:16px;
+  padding:25px;
+  margin-bottom:20px;
+}
+.data {
+  display:flex;
+  justify-content:space-between;
+  font-size:20px;
+  margin:10px 0;
+}
+canvas { height:260px !important; }
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2 id="deviceTitle">Device</h2>
+  <button onclick="goBack()">⬅ Back</button>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <div class="data">
+      <span>Heart Rate</span>
+      <strong id="hr">-- BPM</strong>
+    </div>
+    <div class="data">
+      <span>SpO₂</span>
+      <strong id="spo">-- %</strong>
+    </div>
+    <div class="data">
+      <span>Last Update</span>
+      <strong id="time">--</strong>
+    </div>
+  </div>
+
+  <div class="card">
+    <canvas id="hrChart"></canvas>
+  </div>
+
+  <div class="card">
+    <canvas id="spoChart"></canvas>
+  </div>
+
+</div>
+
+<script>
+function goBack() {
+  history.back();
+}
+
+/* =====================
+   Get device from URL
+   ===================== */
+const params = new URLSearchParams(window.location.search);
+const device = params.get('device');
+
+if (!device) {
+  alert('No device selected');
+  goBack();
+}
+
+document.getElementById('deviceTitle').innerText =
+  device.toUpperCase() + ' — Device Details';
+
+/* =====================
+   Charts
+   ===================== */
+const hrChart = new Chart(document.getElementById('hrChart'), {
+  type:'line',
+  data:{labels:[],datasets:[{
+    label:'Heart Rate',
+    data:[],
+    borderColor:'#22d3ee',
+    fill:true
+  }]},
+  options:{animation:false}
+});
+
+const spoChart = new Chart(document.getElementById('spoChart'), {
+  type:'line',
+  data:{labels:[],datasets:[{
+    label:'SpO₂',
+    data:[],
+    borderColor:'#f472b6',
+    fill:true
+  }]},
+  options:{animation:false}
+});
+
+/* =====================
+   Load data
+   ===================== */
+async function loadData() {
+  try {
+    const res = await fetch(`/api/sensor?device=${device}`);
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return;
+
+    const last = data[data.length - 1];
+
+    document.getElementById('hr').innerText =
+      last.heartrate + ' BPM';
+    document.getElementById('spo').innerText =
+      last.spo2 + ' %';
+    document.getElementById('time').innerText =
+      new Date(last.time).toLocaleString();
+
+    hrChart.data.labels = data.map(()=> '');
+    hrChart.data.datasets[0].data =
+      data.map(r => r.heartrate);
+    hrChart.update();
+
+    spoChart.data.labels = data.map(()=> '');
+    spoChart.data.datasets[0].data =
+      data.map(r => r.spo2);
+    spoChart.update();
+
+  } catch (e) {
+    console.error('Load error', e);
+  }
+}
+
+loadData();
+setInterval(loadData, 2000);
+</script>
+
+</body>
+</html>
