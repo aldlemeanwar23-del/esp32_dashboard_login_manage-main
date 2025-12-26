@@ -66,18 +66,21 @@ header button:hover { background: #00bcd4; }
   font-weight: bold;
 }
 
-/* Charts عمودي */
+/* Charts */
 .charts {
   display: flex;
-  flex-direction: column; /* عمودي */
+  justify-content: space-between;
   gap: 15px;
 }
 canvas {
-  width: 100%;
+  flex: 1;
   height: 200px;
   background: rgba(0, 0, 0, 0.3);
   border-radius: 12px;
   padding: 5px;
+}
+@media(max-width:800px){
+  .charts { flex-direction: column; }
 }
 </style>
 </head>
@@ -101,7 +104,7 @@ canvas {
     </div>
   </div>
 
-  <!-- الرسوم البيانية عمودي -->
+  <!-- الرسوم البيانية الصغيرة بالتوازي -->
   <div class="charts">
     <canvas id="hrChart"></canvas>
     <canvas id="spoChart"></canvas>
@@ -138,7 +141,7 @@ async function loadData() {
     document.getElementById('spo').innerText = last.spo2 + ' %';
 
     labels.length = hrData.length = spoData.length = 0;
-    data.slice(-50).forEach(r => { // آخر 50 نقطة
+    data.slice(-50).forEach(r => { // عرض آخر 50 نقطة لتقليل حجم الرسم
       labels.push('');
       hrData.push(r.heartrate);
       spoData.push(r.spo2);
