@@ -2,53 +2,202 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Patient Management</title>
+<title>Manage Patients</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-body { margin:0; font-family:Segoe UI, Arial; background:#020617; color:#e5e7eb; }
-.top-bar { display:flex; justify-content:space-between; align-items:center; padding:18px 30px; background:rgba(2,6,23,.8); border-bottom:1px solid rgba(255,255,255,.15); }
-.top-bar h2 { margin:0; color:#0ea5e9; }
-.top-bar button { padding:8px 15px; background:#0ea5e9; border:none; border-radius:8px; cursor:pointer; color:#fff; font-weight:600; }
-.top-bar button:hover { opacity:.85; }
-table { width:90%; margin:20px auto; border-collapse:collapse; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); border-radius:12px; overflow:hidden; }
-th, td { padding:12px 15px; border-bottom:1px solid rgba(255,255,255,.15); text-align:center; }
-th { background:rgba(0,0,0,.2); color:#0ea5e9; }
-tr:hover { background:rgba(0,0,0,.1); cursor:pointer; }
+body {
+  background:#0a0f1a;
+  color:#fff;
+  font-family:Segoe UI;
+}
+h2 { text-align:center; color:#00ffff; margin-top:20px; }
+table {
+  width:95%;
+  margin:auto;
+  border-collapse:collapse;
+}
+th,td {
+  border:1px solid #00ffff44;
+  padding:8px;
+  text-align:center;
+}
+th { background:#001f2f; }
+input,button {
+  padding:8px;
+  border-radius:6px;
+  border:none;
+}
+button {
+  background:#00ffff;
+  cursor:pointer;
+  font-weight:bold;
+}
+button:hover { background:#00bcd4; color:#fff; }
+.form {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:10px;
+  width:95%;
+  margin:15px auto;
+}
+.top-bar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  width:95%;
+  margin:10px auto;
+}
+.top-bar button { margin:0; }
 </style>
 </head>
+
 <body>
 
+<script>
+if(localStorage.getItem('auth')!=='1') location.href='/login.html';
+</script>
+
 <div class="top-bar">
-  <h2>Patient Management</h2>
+  <h2>🧾 Patient Management</h2>
   <button onclick="location.href='admin.html'">← Back to Dashboard</button>
 </div>
 
-<table id="patientsTable">
-  <thead>
-    <tr>
-      <th>Patient Name</th>
-      <th>Device</th>
-      <th>Last Check</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
+<div class="form">
+  <input id="device_id" placeholder="Device ID">
+  <input id="pname" placeholder="Patient Name">
+  <input id="pmobile" placeholder="Mobile">
+  <input id="email" placeholder="Email">
+  <input id="age" placeholder="Age">
+  <input id="chin" placeholder="CheckIn Date" type="date">
+  <input id="chout" placeholder="CheckOut Date" type="date">
+  <button onclick="addPatient()">Add</button>
+  <button onclick="editPatient()"> Edit </button>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>ID</th><th>Device ID</th>
+<th>Patient Name</th><th>Mobile</th><th>Email</th><th>Age</th><th>CheckIn Date</th><th>CheckOut Date</th><th>Action</th>
+</tr>
+</thead>
+<tbody id="rows"></tbody>
 </table>
 
 <script>
-async function loadPatients() {
-  const tbody = document.querySelector("#patientsTable tbody");
-  tbody.innerHTML = '';
+async function loadPatients(){
   try {
-    const res = await fetch('/api/patients');
-    const patients = await res.json();
-    patients.forEach(p => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${p.name}</td><td>${p.device}</td><td>${new Date(p.last_check).toLocaleString()}</td>`;
-      tbody.appendChild(tr);
+    const res = await fetch('/api/infoGet');
+    const data = await res.json();
+    const tbody = document.getElementById('rows');
+    tbody.innerHTML = '';
+
+    data.forEach(r => {
+      tbody.innerHTML += `
+<tr>
+<td>${r.id}</td>
+<td>${r.device_id}</td>
+<td>${r.p_name}</td>
+<td>${r.ph_no}</td>
+<td>${r.email}</td>
+<td>${r.age}</td>
+<td>${r.checkin_date}</td>
+<td>${r.checkout_date}</td>
+<td>
+<button onclick="deletePatient(${r.id})">🗑 Delete</button>
+</td>
+</tr>`;
     });
-  } catch(e) { console.error(e); }
+  } catch(err){
+    console.error('Load patients error:', err);
+  }
 }
+async function editPatient(){
+  const body = {
+    device_id: document.getElementById('device_id').value,
+    pname: document.getElementById('pname').value,
+    pmobile: document.getElementById('pmobile').value,
+    email:document.getElementById('email').value,
+    age: Number(document.getElementById('age').value),
+    chin:(document.getElementById('chin').value),
+    chout:(document.getElementById('chout').value)
+    
+  };
+
+  if(!body.device_id || !body.pname) {
+    alert('Device ID and Patient Name are required!');
+    return;
+  }
+
+  try {
+    await fetch('/api/update', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    clearForm();
+    loadPatients();
+  } catch(err){
+    console.error('Add patient error:', err);
+  }
+}
+
+async function addPatient(){
+  const body = {
+    device_id: document.getElementById('device_id').value,
+    pname: document.getElementById('pname').value,
+    pmobile: document.getElementById('pmobile').value,
+    email:document.getElementById('email').value,
+    age: Number(document.getElementById('age').value),
+    chin:(document.getElementById('chin').value),
+    chout:(document.getElementById('chout').value)
+  };
+
+  if(!body.device_id || !body.pname) {
+    alert('Device ID and Patient Name are required!');
+    return;
+  }
+
+  try {
+    await fetch('/api/add', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    clearForm();
+    loadPatients();
+  } catch(err){
+    console.error('Add patient error:', err);
+  }
+}
+
+async function deletePatient(id){
+  if(!confirm('Are you sure you want to delete this patient?')) return;
+  try {
+    await fetch('/api/infoDelete', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id})
+    });
+    loadPatients();
+  } catch(err){
+    console.error('Delete patient error:', err);
+  }
+}
+
+function clearForm(){
+  document.getElementById('device_id').value = '';
+  document.getElementById('pname').value = '';
+  document.getElementById('pmobile').value = '';
+  document.getElementById('email').value = '';
+  document.getElementById('age').value = '';
+  document.getElementById('chin').value='';
+  document.getElementById('chout').value='';
+}
+
 loadPatients();
 </script>
+
 </body>
 </html>
