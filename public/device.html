@@ -5,80 +5,46 @@
 <title>Device Details</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin:0; padding:0; }
 body, html {
-  width: 100%;
-  height: 100%;
+  width:100%; height:100%;
   font-family: 'Segoe UI', Arial, sans-serif;
-  background: #0a0f1a;
-  color: #fff;
+  background:#0a0f1a; color:#fff;
 }
 header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 25px;
-  background: #001f2f;
-  color: #00ffff;
-  font-size: 20px;
+  display:flex; justify-content:space-between; align-items:center;
+  padding:15px 25px; background:#001f2f; color:#00ffff; font-size:20px;
 }
 header button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  background: #00ffff;
-  color: #020617;
-  font-weight: bold;
-  cursor: pointer;
+  padding:8px 16px; border:none; border-radius:6px;
+  background:#00ffff; color:#020617; font-weight:bold; cursor:pointer;
 }
-header button:hover { background: #00bcd4; }
+header button:hover { background:#00bcd4; }
 
 .container {
-  display: flex;
-  flex-direction: column;
-  height: calc(100% - 60px);
-  padding: 15px 20px;
-  gap: 15px;
+  display:flex; flex-direction:column;
+  height:calc(100% - 60px); padding:15px 20px; gap:15px;
 }
 
 /* النتائج */
 .results {
-  display: flex;
-  justify-content: space-around;
-  gap: 15px;
+  display:flex; justify-content:space-around; gap:15px;
 }
 .result-card {
-  flex: 1;
-  background: rgba(0, 255, 255, 0.1);
-  padding: 15px;
-  border-radius: 12px;
-  text-align: center;
+  flex:1; background: rgba(0,255,255,0.1); padding:15px;
+  border-radius:12px; text-align:center;
 }
-.result-card h3 {
-  font-size: 16px;
-  color: #00ffff;
-  margin-bottom: 10px;
-}
-.result-card .value {
-  font-size: 28px;
-  font-weight: bold;
-}
+.result-card h3 { font-size:16px; color:#00ffff; margin-bottom:10px; }
+.result-card .value { font-size:28px; font-weight:bold; }
 
-/* Charts بشكل عمودي */
+/* Charts عمودي */
 .charts {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
+  display:flex; flex-direction:column; align-items:center; gap:15px;
 }
 canvas {
-  width: 90%;        /* عرض مناسب */
-  height: 200px;      /* ارتفاع ثابت */
-  background: rgba(0,0,0,0.2);
-  border-radius: 12px;
-  padding: 5px;
+  width:90%; height:250px; background: rgba(0,0,0,0.2);
+  border-radius:12px; padding:5px;
 }
 </style>
 </head>
@@ -90,7 +56,6 @@ canvas {
 </header>
 
 <div class="container">
-  <!-- النتائج -->
   <div class="results">
     <div class="result-card">
       <h3>Heart Rate</h3>
@@ -102,7 +67,6 @@ canvas {
     </div>
   </div>
 
-  <!-- الرسوم البيانية بشكل عمودي -->
   <div class="charts">
     <canvas id="hrChart"></canvas>
     <canvas id="spoChart"></canvas>
@@ -114,64 +78,32 @@ const params = new URLSearchParams(window.location.search);
 const device = params.get('device') || 'max1';
 document.getElementById('deviceName').innerText = device.toUpperCase();
 
-let labels = [], hrData = [], spoData = [];
+let labels=[], hrData=[], spoData=[];
 
-// إعداد Chart.js لكل رسم
 const hrChart = new Chart(document.getElementById('hrChart'), {
-  type: 'line',
-  data: {
-    labels: labels,
-    datasets: [{
-      label: 'Heart Rate',
-      data: hrData,
-      borderColor: '#00ffff',
-      backgroundColor: 'rgba(0,255,255,0.2)',
-      fill: true,
-      tension: 0.2
-    }]
-  },
-  options: {
-    responsive: true,
-    animation: false,
-    maintainAspectRatio: false,
-    scales: { y: { beginAtZero: true } }
-  }
+  type:'line',
+  data:{ labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', backgroundColor:'rgba(0,255,255,0.2)', fill:true, tension:0.2}]},
+  options:{ responsive:true, animation:false, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
 });
 
 const spoChart = new Chart(document.getElementById('spoChart'), {
-  type: 'line',
-  data: {
-    labels: labels,
-    datasets: [{
-      label: 'SpO₂',
-      data: spoData,
-      borderColor: '#ff00ff',
-      backgroundColor: 'rgba(255,0,255,0.2)',
-      fill: true,
-      tension: 0.2
-    }]
-  },
-  options: {
-    responsive: true,
-    animation: false,
-    maintainAspectRatio: false,
-    scales: { y: { beginAtZero: true } }
-  }
+  type:'line',
+  data:{ labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', backgroundColor:'rgba(255,0,255,0.2)', fill:true, tension:0.2}]},
+  options:{ responsive:true, animation:false, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
 });
 
-// تحميل البيانات من API وتحديث الجارت
-async function loadData() {
-  try {
+async function loadData(){
+  try{
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
-    if (!data || data.length === 0) return;
+    if(!data || data.length===0) return;
 
-    const last = data[data.length - 1];
-    document.getElementById('hr').innerText = last.heartrate + ' BPM';
-    document.getElementById('spo').innerText = last.spo2 + ' %';
+    const last = data[data.length-1];
+    document.getElementById('hr').innerText = last.heartrate+' BPM';
+    document.getElementById('spo').innerText = last.spo2+' %';
 
-    labels.length = hrData.length = spoData.length = 0;
-    data.slice(-50).forEach(r => {
+    labels.length=hrData.length=spoData.length=0;
+    data.slice(-50).forEach(r=>{
       labels.push('');
       hrData.push(r.heartrate);
       spoData.push(r.spo2);
@@ -179,15 +111,11 @@ async function loadData() {
 
     hrChart.update();
     spoChart.update();
-  } catch (e) {
-    console.error('Error fetching device data:', e);
-  }
+  }catch(e){ console.error(e); }
 }
 
-// التحميل الأولي + تحديث كل 2 ثانية
 loadData();
 setInterval(loadData, 2000);
 </script>
-
 </body>
 </html>
