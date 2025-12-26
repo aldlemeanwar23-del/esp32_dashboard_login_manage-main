@@ -8,11 +8,10 @@
 
 <style>
 body {
+  margin:0;
+  font-family:Segoe UI, Arial;
   background:#0a0f1a;
   color:#fff;
-  font-family:Segoe UI, Arial;
-  margin:0;
-  padding:0;
 }
 header {
   display:flex;
@@ -36,7 +35,11 @@ header button:hover {
   background:#00bcd4;
 }
 .container {
+  display:flex;
+  flex-direction:column;
+  height:calc(100vh - 60px); /* full screen minus header */
   padding:20px;
+  box-sizing:border-box;
 }
 .results {
   display:flex;
@@ -60,16 +63,17 @@ header button:hover {
   font-size:24px;
   font-weight:bold;
 }
+/* Charts container fills remaining height */
 .charts {
+  flex:1;
   display:flex;
-  flex-direction:column;
   gap:10px;
 }
 canvas {
+  flex:1;
   background: rgba(0,0,0,0.3);
   border-radius: 12px;
-  padding: 5px;
-  height:120px !important;
+  padding:5px;
 }
 </style>
 </head>
@@ -110,13 +114,13 @@ let labels = [], hrData = [], spoData = [];
 const hrChart = new Chart(document.getElementById('hrChart'), {
   type:'line',
   data:{labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', fill:true}]},
-  options:{responsive:true, animation:false}
+  options:{responsive:true, animation:false, maintainAspectRatio:false}
 });
 
 const spoChart = new Chart(document.getElementById('spoChart'), {
   type:'line',
   data:{labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', fill:true}]},
-  options:{responsive:true, animation:false}
+  options:{responsive:true, animation:false, maintainAspectRatio:false}
 });
 
 async function loadData() {
