@@ -10,7 +10,7 @@
 body {
   background:#0a0f1a;
   color:#fff;
-  font-family:Segoe UI;
+  font-family:Segoe UI, Arial;
   margin:0;
   padding:0;
 }
@@ -41,30 +41,35 @@ header button:hover {
 .results {
   display:flex;
   justify-content:space-around;
-  margin-bottom:20px;
+  margin-bottom:15px;
 }
 .result-card {
   background:rgba(0,255,255,0.1);
-  padding:15px 20px;
+  padding:10px 15px;
   border-radius:10px;
   text-align:center;
   flex:1;
-  margin:0 10px;
+  margin:0 5px;
 }
 .result-card h3 {
-  margin:0 0 10px 0;
-  font-size:16px;
+  margin:0 0 8px 0;
+  font-size:14px;
   color:#00ffff;
 }
 .result-card .value {
-  font-size:30px;
+  font-size:24px;
   font-weight:bold;
 }
+.charts {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
 canvas {
-  background:rgba(0,0,0,0.3);
-  border-radius:12px;
-  padding:10px;
-  margin-bottom:20px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 12px;
+  padding: 5px;
+  height:120px !important;
 }
 </style>
 </head>
@@ -76,6 +81,7 @@ canvas {
 </header>
 
 <div class="container">
+  <!-- النتائج -->
   <div class="results">
     <div class="result-card">
       <h3>Heart Rate</h3>
@@ -87,9 +93,11 @@ canvas {
     </div>
   </div>
 
- <canvas id="hrChart" height="120"></canvas>
- <canvas id="spoChart" height="120"></canvas>
-
+  <!-- الرسوم البيانية -->
+  <div class="charts">
+    <canvas id="hrChart"></canvas>
+    <canvas id="spoChart"></canvas>
+  </div>
 </div>
 
 <script>
@@ -135,6 +143,7 @@ async function loadData() {
   }
 }
 
+// تحميل أول مرة + تحديث تلقائي
 loadData();
 setInterval(loadData, 2000);
 </script>
