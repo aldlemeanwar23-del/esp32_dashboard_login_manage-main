@@ -57,6 +57,7 @@ body {
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
+  min-height: 300px;
 }
 .device-card:hover { transform:translateY(-4px); }
 .device-card h3 { margin:0 0 15px; color:var(--primary); }
@@ -130,12 +131,12 @@ devices.forEach(device => {
     hrChart: new Chart(document.getElementById(`${device}-hrChart`), {
       type:'line',
       data:{labels:[],datasets:[{label:'HR',data:[],borderColor:'#00ffff',fill:true}]},
-      options:{animation:false,responsive:true}
+      options:{animation:false,responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
     }),
     spoChart: new Chart(document.getElementById(`${device}-spoChart`), {
       type:'line',
       data:{labels:[],datasets:[{label:'SpO₂',data:[],borderColor:'#ff00ff',fill:true}]},
-      options:{animation:false,responsive:true}
+      options:{animation:false,responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
     })
   };
 });
@@ -146,10 +147,14 @@ async function loadDevice(device) {
     const data = await res.json();
 
     const emptyMessage = document.getElementById(`${device}-empty`);
-    if (!data || data.length===0) {
+    const hrValue = document.getElementById(`${device}-hr`);
+    const spoValue = document.getElementById(`${device}-spo`);
+
+    if (!data || data.length === 0) {
+      // الجهاز مفصول
       emptyMessage.style.display = 'block';
-      document.getElementById(`${device}-hr`).innerText = '';
-      document.getElementById(`${device}-spo`).innerText = '';
+      hrValue.innerText = '';
+      spoValue.innerText = '';
       charts[device].hrChart.data.labels = [];
       charts[device].hrChart.data.datasets[0].data = [];
       charts[device].hrChart.update();
@@ -159,10 +164,11 @@ async function loadDevice(device) {
       return;
     }
 
+    // البيانات موجودة
     emptyMessage.style.display = 'none';
     const last = data[data.length-1];
-    document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
-    document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
+    hrValue.innerText = last.heartrate + ' BPM';
+    spoValue.innerText = last.spo2 + ' %';
 
     charts[device].hrChart.data.labels = data.map(()=> '');
     charts[device].hrChart.data.datasets[0].data = data.map(r => r.heartrate);
