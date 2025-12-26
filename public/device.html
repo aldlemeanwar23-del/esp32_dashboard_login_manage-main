@@ -7,11 +7,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 * { box-sizing: border-box; margin:0; padding:0; }
-body, html {
-  width:100%; height:100%;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background:#0a0f1a; color:#fff;
-}
+body, html { width:100%; height:100%; font-family:'Segoe UI', Arial; background:#0a0f1a; color:#fff; }
+
 header {
   display:flex; justify-content:space-between; align-items:center;
   padding:15px 25px; background:#001f2f; color:#00ffff; font-size:20px;
@@ -23,17 +20,14 @@ header button {
 header button:hover { background:#00bcd4; }
 
 .container {
-  display:flex; flex-direction:column;
-  height:calc(100% - 60px); padding:15px 20px; gap:15px;
+  display:flex; flex-direction:column; height:calc(100% - 60px); padding:15px 20px; gap:15px;
 }
 
-/* النتائج */
 .results {
   display:flex; justify-content:space-around; gap:15px;
 }
 .result-card {
-  flex:1; background: rgba(0,255,255,0.1); padding:15px;
-  border-radius:12px; text-align:center;
+  flex:1; background: rgba(0,255,255,0.1); padding:15px; border-radius:12px; text-align:center;
 }
 .result-card h3 { font-size:16px; color:#00ffff; margin-bottom:10px; }
 .result-card .value { font-size:28px; font-weight:bold; }
@@ -42,9 +36,8 @@ header button:hover { background:#00bcd4; }
 .charts {
   display:flex; flex-direction:column; align-items:center; gap:15px;
 }
-canvas {
-  width:90%; height:250px; background: rgba(0,0,0,0.2);
-  border-radius:12px; padding:5px;
+.chart-container {
+  width:90%; height:250px; /* عرض وارتفاع ثابت */
 }
 </style>
 </head>
@@ -68,8 +61,8 @@ canvas {
   </div>
 
   <div class="charts">
-    <canvas id="hrChart"></canvas>
-    <canvas id="spoChart"></canvas>
+    <div class="chart-container"><canvas id="hrChart"></canvas></div>
+    <div class="chart-container"><canvas id="spoChart"></canvas></div>
   </div>
 </div>
 
@@ -83,13 +76,13 @@ let labels=[], hrData=[], spoData=[];
 const hrChart = new Chart(document.getElementById('hrChart'), {
   type:'line',
   data:{ labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', backgroundColor:'rgba(0,255,255,0.2)', fill:true, tension:0.2}]},
-  options:{ responsive:true, animation:false, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+  options:{ responsive:true, maintainAspectRatio:false, animation:false, scales:{y:{beginAtZero:true}} }
 });
 
 const spoChart = new Chart(document.getElementById('spoChart'), {
   type:'line',
   data:{ labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', backgroundColor:'rgba(255,0,255,0.2)', fill:true, tension:0.2}]},
-  options:{ responsive:true, animation:false, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+  options:{ responsive:true, maintainAspectRatio:false, animation:false, scales:{y:{beginAtZero:true}} }
 });
 
 async function loadData(){
@@ -102,7 +95,7 @@ async function loadData(){
     document.getElementById('hr').innerText = last.heartrate+' BPM';
     document.getElementById('spo').innerText = last.spo2+' %';
 
-    labels.length=hrData.length=spoData.length=0;
+    labels.length = hrData.length = spoData.length = 0;
     data.slice(-50).forEach(r=>{
       labels.push('');
       hrData.push(r.heartrate);
@@ -115,7 +108,8 @@ async function loadData(){
 }
 
 loadData();
-setInterval(loadData, 2000);
+setInterval(loadData,2000);
 </script>
+
 </body>
 </html>
