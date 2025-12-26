@@ -24,7 +24,7 @@ body {
   justify-content:space-between;
   align-items:center;
   padding:18px 30px;
-  background:#020617;
+  background:rgba(2,6,23,.8);
   border-bottom:1px solid var(--border);
 }
 .top-bar h2 { margin:0; color:var(--primary); }
@@ -48,43 +48,44 @@ body {
   border:1px solid var(--border);
   border-radius:16px;
   padding:22px;
-  min-height:260px;
+  backdrop-filter:blur(14px);
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+  min-height:320px;
   position:relative;
 }
-.device-card h3 {
-  margin:0 0 10px;
-  color:var(--primary);
-}
-.data {
-  display:flex;
-  justify-content:space-between;
-  margin:6px 0;
-}
-canvas {
-  height:110px !important;
-  margin-top:8px;
-}
+.device-card h3 { margin:0 0 15px; color:var(--primary); }
+
+.data { display:flex; justify-content:space-between; margin:8px 0; }
+.label { opacity:.7; }
+.value { font-weight:600; }
+
 .open-btn {
-  margin-top:10px;
+  margin-top:15px;
   width:100%;
-  padding:8px;
+  padding:10px;
   border-radius:10px;
   border:none;
   background:#22c55e;
+  color:#020617;
   font-weight:700;
   cursor:pointer;
 }
 
-/* رسالة الجهاز متاح */
+/* حالة الجهاز متاح */
 .empty {
   position:absolute;
   inset:0;
   display:none;
   align-items:center;
   justify-content:center;
-  font-size:20px;
-  font-weight:bold;
-  color:#22c55e;
+  font-size:22px;
+  font-weight:700;
+  color:#94a3b8;
+}
+
+canvas {
+  height:110px !important;
+  margin-top:10px;
 }
 </style>
 </head>
@@ -115,94 +116,107 @@ function logout(){
 const devices = ['max1','max2','max3','max4'];
 const charts = {};
 
-devices.forEach(device=>{
+devices.forEach(device => {
   const card = document.getElementById(device);
   card.innerHTML = `
     <h3>${device.toUpperCase()}</h3>
 
-    <div class="content">
-      <div class="data"><span>Heart Rate</span><span id="${device}-hr">--</span></div>
-      <div class="data"><span>SpO₂</span><span id="${device}-spo">--</span></div>
+    <div class="empty" id="${device}-empty">الجهاز متاح</div>
 
-      <canvas id="${device}-hrChart"></canvas>
-      <canvas id="${device}-spoChart"></canvas>
-
-      <button class="open-btn"
-        onclick="location.href='device.html?device=${device}'">
-        Open Device
-      </button>
+    <div class="data">
+      <span class="label">Heart Rate</span>
+      <span class="value" id="${device}-hr">--</span>
     </div>
 
-    <div class="empty" id="${device}-empty">الجهاز متاح</div>
+    <div class="data">
+      <span class="label">SpO₂</span>
+      <span class="value" id="${device}-spo">--</span>
+    </div>
+
+    <canvas id="${device}-hrChart"></canvas>
+    <canvas id="${device}-spoChart"></canvas>
+
+    <button class="open-btn"
+      onclick="location.href='device.html?device=${device}'">
+      Open Device
+    </button>
   `;
 
   charts[device] = { hr:null, spo:null };
 });
+
+function showEmpty(device){
+  document.getElementById(`${device}-empty`).style.display = 'flex';
+  document.getElementById(`${device}-hr`).innerText = '--';
+  document.getElementById(`${device}-spo`).innerText = '--';
+
+  if(charts[device].hr){
+    charts[device].hr.destroy();
+    charts[device].spo.destroy();
+    charts[device].hr = null;
+    charts[device].spo = null;
+  }
+}
+
+function showData(device){
+  document.getElementById(`${device}-empty`).style.display = 'none';
+}
 
 async function loadDevice(device){
   try{
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
-    const empty = document.getElementById(`${device}-empty`);
-    const hrEl = document.getElementById(`${device}-hr`);
-    const spoEl = document.getElementById(`${device}-spo`);
-    const hrCanvas = document.getElementById(`${device}-hrChart`);
-    const spoCanvas = document.getElementById(`${device}-spoChart`);
-
-    // ❌ لا توجد بيانات → مسح كل شيء
     if(!data || data.length === 0){
-      empty.style.display='flex';
-
-      hrEl.innerText='--';
-      spoEl.innerText='--';
-
-      hrCanvas.style.display='none';
-      spoCanvas.style.display='none';
-
-      if(charts[device].hr){ charts[device].hr.destroy(); charts[device].hr=null; }
-      if(charts[device].spo){ charts[device].spo.destroy(); charts[device].spo=null; }
-
+      showEmpty(device);
       return;
     }
 
-    // ✅ توجد بيانات
-    empty.style.display='none';
-    hrCanvas.style.display='block';
-    spoCanvas.style.display='block';
+    const last = data[data.length - 1];
+    const lastTime = new Date(last.time).getTime();
+    const now = Date.now();
 
-    const last = data[data.length-1];
-    hrEl.innerText = last.heartrate + ' BPM';
-    spoEl.innerText = last.spo2 + ' %';
+    // ⛔ لا يوجد تحديث منذ 6 ثواني
+    if(now - lastTime > 6000){
+      showEmpty(device);
+      return;
+    }
 
-    const labels = data.map(()=>'');
+    showData(device);
+
+    document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
+    document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
 
     if(!charts[device].hr){
-      charts[device].hr = new Chart(hrCanvas,{
-        type:'line',
-        data:{labels,datasets:[{data:data.map(r=>r.heartrate),borderColor:'#00ffff',fill:true}]},
-        options:{animation:false,responsive:true,maintainAspectRatio:false}
-      });
-    } else {
-      charts[device].hr.data.labels = labels;
-      charts[device].hr.data.datasets[0].data = data.map(r=>r.heartrate);
-      charts[device].hr.update();
+      charts[device].hr = new Chart(
+        document.getElementById(`${device}-hrChart`),
+        {
+          type:'line',
+          data:{labels:[],datasets:[{data:[],borderColor:'#00ffff',fill:true}]},
+          options:{animation:false,responsive:true}
+        }
+      );
+      charts[device].spo = new Chart(
+        document.getElementById(`${device}-spoChart`),
+        {
+          type:'line',
+          data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff',fill:true}]},
+          options:{animation:false,responsive:true}
+        }
+      );
     }
 
-    if(!charts[device].spo){
-      charts[device].spo = new Chart(spoCanvas,{
-        type:'line',
-        data:{labels,datasets:[{data:data.map(r=>r.spo2),borderColor:'#ff00ff',fill:true}]},
-        options:{animation:false,responsive:true,maintainAspectRatio:false}
-      });
-    } else {
-      charts[device].spo.data.labels = labels;
-      charts[device].spo.data.datasets[0].data = data.map(r=>r.spo2);
-      charts[device].spo.update();
-    }
+    const recent = data.slice(-20);
+    charts[device].hr.data.labels = recent.map(()=> '');
+    charts[device].hr.data.datasets[0].data = recent.map(r=>r.heartrate);
+    charts[device].hr.update();
+
+    charts[device].spo.data.labels = recent.map(()=> '');
+    charts[device].spo.data.datasets[0].data = recent.map(r=>r.spo2);
+    charts[device].spo.update();
 
   }catch(e){
-    console.error('Device error',device,e);
+    showEmpty(device);
   }
 }
 
