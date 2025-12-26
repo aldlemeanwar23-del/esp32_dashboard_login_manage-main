@@ -67,15 +67,15 @@ header button:hover { background: #00bcd4; }
   font-weight: bold;
 }
 
-/* Charts بشكل عمودي */
+/* Charts بشكل عمودي ومتناسق */
 .charts {
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 canvas {
-  width: 50%;
-  height: 100px; /* يمكن تغيير الارتفاع حسب الحاجة */
+  width: 100%;
+  height: 150px; /* ارتفاع مناسب للعرض الكامل */
   background: rgba(0, 0, 0, 0.3);
   border-radius: 12px;
   padding: 5px;
@@ -152,10 +152,10 @@ async function loadData() {
   }
 }
 
-// تحميل أول مرة + تحديث تلقائي
 loadData();
 setInterval(loadData, 2000);
 </script>
 
 </body>
 </html>
+
