@@ -9,14 +9,13 @@
 <style>
 :root {
   --primary:#0ea5e9;
-  --bg:#020617;
   --card:rgba(255,255,255,.08);
   --border:rgba(255,255,255,.15);
 }
 body {
   margin:0;
   font-family:Segoe UI, Arial;
-  background:linear-gradient(135deg,#020617,#020617,#020617);
+  background:#020617;
   color:#e5e7eb;
 }
 .top-bar {
@@ -38,12 +37,14 @@ body {
   font-weight:600;
 }
 .top-bar button:hover { opacity:.85; }
+
 .container {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
   gap:20px;
   padding:30px;
 }
+
 .device-card {
   position: relative;
   background:var(--card);
@@ -60,10 +61,12 @@ body {
   align-items:center;
 }
 .device-card:hover { transform:translateY(-4px); }
+
 .device-card h3 { margin:0 0 15px; color:var(--primary); }
 .data { display:flex; justify-content:space-between; margin:8px 0; width:100%; }
 .label { opacity:.7; }
 .value { font-weight:600; }
+
 .empty-message {
   position:absolute;
   top:50%;
@@ -75,6 +78,7 @@ body {
   text-align:center;
   display:none;
 }
+
 .open-btn {
   margin-top:15px;
   width:100%;
@@ -87,7 +91,8 @@ body {
   cursor:pointer;
 }
 .open-btn:hover { opacity:.85; }
-canvas { height:120px !important; margin-top:10px; }
+
+canvas { height:120px !important; width:100%; display:block; margin-top:10px; }
 </style>
 </head>
 <body>
@@ -150,14 +155,20 @@ async function loadDevice(device) {
     const emptyMsg = document.getElementById(`${device}-empty`);
     const hrVal = document.getElementById(`${device}-hr`);
     const spoVal = document.getElementById(`${device}-spo`);
+    const hrCanvas = document.getElementById(`${device}-hrChart`);
+    const spoCanvas = document.getElementById(`${device}-spoChart`);
     const hrChart = charts[device].hrChart;
     const spoChart = charts[device].spoChart;
 
     if (!data || data.length === 0) {
       // عرض "الجهاز متاح"
       emptyMsg.style.display = 'block';
-      hrVal.innerText = '';
-      spoVal.innerText = '';
+      hrVal.style.display = 'none';
+      spoVal.style.display = 'none';
+      hrCanvas.style.display = 'none';
+      spoCanvas.style.display = 'none';
+
+      // مسح بيانات الرسم البياني
       hrChart.data.labels = [];
       hrChart.data.datasets[0].data = [];
       hrChart.update();
@@ -169,6 +180,11 @@ async function loadDevice(device) {
 
     // عند وجود بيانات
     emptyMsg.style.display = 'none';
+    hrVal.style.display = 'inline';
+    spoVal.style.display = 'inline';
+    hrCanvas.style.display = 'block';
+    spoCanvas.style.display = 'block';
+
     const last = data[data.length-1];
     hrVal.innerText = last.heartrate + ' BPM';
     spoVal.innerText = last.spo2 + ' %';
