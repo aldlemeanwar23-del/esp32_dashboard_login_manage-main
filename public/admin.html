@@ -2,22 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Admin Dashboard</title>
+<title>Admin Health Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-:root {
-  --primary:#0ea5e9;
-  --bg:#020617;
-  --card:rgba(255,255,255,.08);
-  --border:rgba(255,255,255,.15);
-}
 body {
   margin:0;
   font-family:Segoe UI, Arial;
-  background:linear-gradient(135deg,#020617,#020617,#020617);
-  color:#e5e7eb;
+  background:#0a0f1a;
+  color:#fff;
 }
 .top-bar {
   display:flex;
@@ -25,69 +18,72 @@ body {
   align-items:center;
   padding:18px 30px;
   background:rgba(2,6,23,.8);
-  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid rgba(255,255,255,.15);
 }
-.top-bar h2 { margin:0; color:var(--primary); }
-.top-bar button {
-  padding:8px 15px;
-  background:var(--primary);
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
+.top-bar h2 {
+  margin:0;
+  font-weight:600;
+  color:#0ea5e9;
+}
+.top-bar .actions button {
+  margin-left:10px;
+  padding:10px 18px;
+  background:#0ea5e9;
   color:#fff;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
   font-weight:600;
 }
-.top-bar button:hover { opacity:.85; }
+.top-bar .actions button:hover { opacity:.85; }
+
 .container {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-  gap:20px;
-  padding:30px;
+  width:95%;
+  margin:20px auto;
 }
-.device-card {
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:22px;
-  backdrop-filter:blur(14px);
-  box-shadow:0 10px 30px rgba(0,0,0,.4);
-  transition:.3s;
-}
-.device-card:hover { transform:translateY(-4px); }
-.device-card h3 { margin:0 0 15px; color:var(--primary); }
-.data { display:flex; justify-content:space-between; margin:8px 0; }
-.label { opacity:.7; }
-.value { font-weight:600; }
-.open-btn {
-  margin-top:15px;
+
+table {
   width:100%;
-  padding:10px;
-  border-radius:10px;
-  border:none;
-  background:#22c55e;
-  color:#020617;
-  font-weight:700;
-  cursor:pointer;
+  border-collapse:collapse;
 }
-.open-btn:hover { opacity:.85; }
-canvas { height:120px !important; margin-top:10px; }
+th,td {
+  border:1px solid rgba(255,255,255,.15);
+  padding:10px;
+  text-align:center;
+}
+th { background:#001f2f; color:#0ea5e9; }
+td { background:rgba(255,255,255,.08); }
+
+canvas {
+  width:100px;
+  height:50px;
+}
 </style>
 </head>
 <body>
 
 <div class="top-bar">
-  <h2>🩺 Admin Dashboard</h2>
-  <div>
+  <h2>🩺 Admin Health Dashboard</h2>
+  <div class="actions">
+    <button onclick="location.href='archive.html'">Archive</button>
     <button onclick="location.href='manage.html'">Patients</button>
     <button onclick="logout()">Logout</button>
   </div>
 </div>
 
 <div class="container">
-  <div class="device-card" id="max1"></div>
-  <div class="device-card" id="max2"></div>
-  <div class="device-card" id="max3"></div>
-  <div class="device-card" id="max4"></div>
+  <table>
+    <thead>
+      <tr>
+        <th>Device</th>
+        <th>Heart Rate</th>
+        <th>SpO₂</th>
+        <th>Chart</th>
+      </tr>
+    </thead>
+    <tbody id="deviceRows"></tbody>
+  </table>
 </div>
 
 <script>
@@ -99,48 +95,49 @@ function logout() {
 const devices = ['max1','max2','max3','max4'];
 const charts = {};
 
-devices.forEach(device => {
-  const card = document.getElementById(device);
-  card.innerHTML = `
-    <h3>${device.toUpperCase()}</h3>
-    <div class="data"><span class="label">Heart Rate</span> <span class="value" id="${device}-hr">--</span></div>
-    <div class="data"><span class="label">SpO₂</span> <span class="value" id="${device}-spo">--</span></div>
-    <canvas id="${device}-hrChart"></canvas>
-    <canvas id="${device}-spoChart"></canvas>
-    <button class="open-btn" onclick="location.href='device.html?device=${device}'">Open Device</button>
-  `;
-
-  charts[device] = {
-    hrChart: new Chart(document.getElementById(`${device}-hrChart`), {
-      type:'line',
-      data:{labels:[],datasets:[{label:'HR',data:[],borderColor:'#00ffff',fill:true}]},
-      options:{animation:false,responsive:true}
-    }),
-    spoChart: new Chart(document.getElementById(`${device}-spoChart`), {
-      type:'line',
-      data:{labels:[],datasets:[{label:'SpO₂',data:[],borderColor:'#ff00ff',fill:true}]},
-      options:{animation:false,responsive:true}
-    })
-  };
-});
-
 async function loadDevice(device) {
+  const tbody = document.getElementById('deviceRows');
   try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
-    if (!data || data.length===0) return;
 
-    const last = data[data.length-1];
-    document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
-    document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
+    let lastHR = 'الجهاز متاح';
+    let lastSpO2 = 'الجهاز متاح';
 
-    charts[device].hrChart.data.labels = data.map(()=> '');
-    charts[device].hrChart.data.datasets[0].data = data.map(r => r.heartrate);
-    charts[device].hrChart.update();
+    if (data && data.length > 0) {
+      const last = data[data.length-1];
+      lastHR = last.heartrate + ' BPM';
+      lastSpO2 = last.spo2 + ' %';
+    }
 
-    charts[device].spoChart.data.labels = data.map(()=> '');
-    charts[device].spoChart.data.datasets[0].data = data.map(r => r.spo2);
-    charts[device].spoChart.update();
+    // إنشاء صف الجهاز إذا لم يكن موجود
+    if (!document.getElementById(device+'-row')) {
+      const row = document.createElement('tr');
+      row.id = device+'-row';
+      row.innerHTML = `
+        <td>${device.toUpperCase()}</td>
+        <td id="${device}-hr">${lastHR}</td>
+        <td id="${device}-spo">${lastSpO2}</td>
+        <td><canvas id="${device}-chart"></canvas></td>
+      `;
+      tbody.appendChild(row);
+
+      charts[device] = new Chart(document.getElementById(`${device}-chart`), {
+        type:'line',
+        data:{labels:[], datasets:[{label:'HR/SpO₂', data:[], borderColor:'#0ea5e9', fill:false}]},
+        options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
+      });
+    } else {
+      document.getElementById(`${device}-hr`).innerText = lastHR;
+      document.getElementById(`${device}-spo`).innerText = lastSpO2;
+    }
+
+    if (data && data.length > 0) {
+      const chart = charts[device];
+      chart.data.labels = data.map(()=> '');
+      chart.data.datasets[0].data = data.map(r => r.heartrate);
+      chart.update();
+    }
   } catch(e) {
     console.error('Error loading device', device, e);
   }
@@ -151,7 +148,8 @@ function loadAllDevices() {
 }
 
 loadAllDevices();
-setInterval(loadAllDevices,2000);
+setInterval(loadAllDevices, 2000);
 </script>
+
 </body>
 </html>
