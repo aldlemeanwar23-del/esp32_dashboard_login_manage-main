@@ -73,12 +73,13 @@ header button:hover { background: #00bcd4; }
   gap: 15px;
 }
 canvas {
-  flex: 1;
-  height: 200px;
-  background: rgba(0, 0, 0, 0.3);
+  flex: 0 0 48%;  /* عرض الجارت نصف تقريبًا */
+  height: 280px;  /* ارتفاع مناسب */
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   padding: 5px;
 }
+
 @media(max-width:800px){
   .charts { flex-direction: column; }
 }
