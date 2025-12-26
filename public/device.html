@@ -38,6 +38,7 @@ header button:hover { background: #00bcd4; }
 .container {
   display: flex;
   flex-direction: column;
+  align-items: center;
   height: calc(100% - 60px);
   padding: 15px 20px;
   gap: 20px;
@@ -46,11 +47,13 @@ header button:hover { background: #00bcd4; }
 /* النتائج */
 .results {
   display: flex;
-  justify-content: space-around;
-  gap: 15px;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
 }
 .result-card {
   flex: 1;
+  max-width: 200px;
   background: rgba(0, 255, 255, 0.1);
   padding: 15px;
   border-radius: 12px;
@@ -66,23 +69,21 @@ header button:hover { background: #00bcd4; }
   font-weight: bold;
 }
 
-/* Charts متوازية */
+/* Charts عمودية */
 .charts {
   display: flex;
-  flex-direction: column; /* تعديل ليصبح عمودي */
-  align-items: center;    /* تمركز الجارت في المنتصف */
-  gap: 20px;              /* مسافة بين الجارت */
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
 }
 canvas {
-  width: 80%;     /* عرض الجارت */
-  height: 200px;  /* ارتفاع مناسب */
+  flex: none;
+  width: 80%;
+  height: 200px;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   padding: 5px;
-}
-@media(max-width:800px){
-  .charts { flex-direction: column; align-items: center; }
-  canvas { width: 50%; margin-bottom: 15px; }
 }
 </style>
 </head>
@@ -106,7 +107,7 @@ canvas {
     </div>
   </div>
 
-  <!-- الرسوم البيانية بالتوازي -->
+  <!-- الرسوم البيانية العمودية -->
   <div class="charts">
     <canvas id="hrChart"></canvas>
     <canvas id="spoChart"></canvas>
@@ -123,20 +124,20 @@ let labels = [], hrData = [], spoData = [];
 const hrChart = new Chart(document.getElementById('hrChart'), {
   type:'line',
   data:{labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', fill:true}]},
-  options:{responsive:true, maintainAspectRatio:false, animation:false, scales:{y:{beginAtZero:true}}}
+  options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
 });
 
 const spoChart = new Chart(document.getElementById('spoChart'), {
   type:'line',
   data:{labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', fill:true}]},
-  options:{responsive:true, maintainAspectRatio:false, animation:false, scales:{y:{beginAtZero:true}}}
+  options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
 });
 
 async function loadData() {
   try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
-    if (!data || data.length===0) return;
+    if (!data || data.length === 0) return;
 
     const last = data[data.length-1];
     document.getElementById('hr').innerText = last.heartrate + ' BPM';
@@ -151,11 +152,12 @@ async function loadData() {
 
     hrChart.update();
     spoChart.update();
-  } catch(e){
+  } catch(e) {
     console.error('Error fetching device data:', e);
   }
 }
 
+// تحميل أول مرة + تحديث تلقائي
 loadData();
 setInterval(loadData, 2000);
 </script>
