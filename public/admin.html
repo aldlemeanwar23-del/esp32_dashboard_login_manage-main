@@ -13,10 +13,6 @@ body {
   background:#020617;
   color:#e5e7eb;
 }
-.top-bar {
-  padding:18px 30px;
-  border-bottom:1px solid #334155;
-}
 .container {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
@@ -41,21 +37,17 @@ body {
 }
 .available {
   font-size:18px;
-  font-weight:600;
   color:#22c55e;
-  margin-top:10px;
+  font-weight:600;
 }
 .data {
   display:flex;
   justify-content:space-between;
   margin:6px 0;
 }
-canvas {
-  height:110px !important;
-  margin-top:10px;
-}
+canvas { height:110px !important; }
 .open-btn {
-  margin-top:14px;
+  margin-top:12px;
   width:100%;
   padding:10px;
   border:none;
@@ -73,10 +65,6 @@ canvas {
 
 <body>
 
-<div class="top-bar">
-  <h2>🩺 Admin Dashboard</h2>
-</div>
-
 <div class="container">
   <div class="device-card" id="max1"></div>
   <div class="device-card" id="max2"></div>
@@ -87,9 +75,9 @@ canvas {
 <script>
 const devices = ['max1','max2','max3','max4'];
 const charts = {};
-const OFFLINE_TIMEOUT = 10 * 1000; // 10 ثواني
+const OFFLINE_MS = 10000;
 
-function showAvailable(device) {
+function clearCard(device) {
   const card = document.getElementById(device);
   card.className = 'device-card';
   card.innerHTML = `
@@ -100,7 +88,7 @@ function showAvailable(device) {
   delete charts[device];
 }
 
-function showActive(device) {
+function buildCard(device) {
   const card = document.getElementById(device);
   card.className = 'device-card active';
   card.innerHTML = `
@@ -130,49 +118,50 @@ function showActive(device) {
 }
 
 async function loadDevice(device) {
+  let res, data;
+
   try {
-    const res = await fetch(`/api/sensor?device=${device}`);
-    const data = await res.json();
-
-    if (!Array.isArray(data) || data.length === 0) {
-      showAvailable(device);
-      return;
-    }
-
-    const last = data[data.length - 1];
-    const lastTime = new Date(last.time).getTime();
-
-    if (Date.now() - lastTime > OFFLINE_TIMEOUT) {
-      showAvailable(device);
-      return;
-    }
-
-    if (!charts[device]) {
-      showActive(device);
-    }
-
-    document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
-    document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
-
-    charts[device].hr.data.labels = data.map(()=> '');
-    charts[device].hr.data.datasets[0].data = data.map(r => r.heartrate);
-    charts[device].hr.update();
-
-    charts[device].spo.data.labels = data.map(()=> '');
-    charts[device].spo.data.datasets[0].data = data.map(r => r.spo2);
-    charts[device].spo.update();
-
+    res = await fetch(`/api/sensor?device=${device}`);
+    data = await res.json();
   } catch {
-    showAvailable(device);
+    clearCard(device);
+    return;
   }
+
+  // 🔴 أهم سطر: إذا لم يكن Array
+  if (!Array.isArray(data) || data.length === 0) {
+    clearCard(device);
+    return;
+  }
+
+  const last = data[data.length - 1];
+  const lastTime = new Date(last.time).getTime();
+
+  if (Date.now() - lastTime > OFFLINE_MS) {
+    clearCard(device);
+    return;
+  }
+
+  if (!charts[device]) buildCard(device);
+
+  document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
+  document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
+
+  charts[device].hr.data.labels = data.map(()=> '');
+  charts[device].hr.data.datasets[0].data = data.map(r => r.heartrate);
+  charts[device].hr.update();
+
+  charts[device].spo.data.labels = data.map(()=> '');
+  charts[device].spo.data.datasets[0].data = data.map(r => r.spo2);
+  charts[device].spo.update();
 }
 
-function refreshAll() {
+function refresh() {
   devices.forEach(loadDevice);
 }
 
-refreshAll();
-setInterval(refreshAll, 2000);
+refresh();
+setInterval(refresh, 2000);
 </script>
 
 </body>
