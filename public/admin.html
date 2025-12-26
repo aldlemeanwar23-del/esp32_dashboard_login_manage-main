@@ -40,9 +40,10 @@ body {
   text-align:left;
 }
 .available {
-  font-size:20px;
+  font-size:18px;
   font-weight:600;
   color:#22c55e;
+  margin-top:10px;
 }
 .data {
   display:flex;
@@ -61,9 +62,11 @@ canvas {
   border-radius:10px;
   background:#22c55e;
   font-weight:700;
+  cursor:pointer;
 }
 .open-btn:disabled {
   background:#334155;
+  cursor:not-allowed;
 }
 </style>
 </head>
@@ -86,7 +89,8 @@ const devices = ['max1','max2','max3','max4'];
 const charts = {};
 const OFFLINE_TIMEOUT = 10 * 1000; // 10 ثواني
 
-function showAvailable(card, device) {
+function showAvailable(device) {
+  const card = document.getElementById(device);
   card.className = 'device-card';
   card.innerHTML = `
     <h3>${device.toUpperCase()}</h3>
@@ -96,12 +100,13 @@ function showAvailable(card, device) {
   delete charts[device];
 }
 
-function showActive(card, device) {
+function showActive(device) {
+  const card = document.getElementById(device);
   card.className = 'device-card active';
   card.innerHTML = `
     <h3>${device.toUpperCase()}</h3>
-    <div class="data"><span>Heart Rate</span><span id="${device}-hr"></span></div>
-    <div class="data"><span>SpO₂</span><span id="${device}-spo"></span></div>
+    <div class="data"><span>Heart Rate</span><span id="${device}-hr">--</span></div>
+    <div class="data"><span>SpO₂</span><span id="${device}-spo">--</span></div>
     <canvas id="${device}-hrChart"></canvas>
     <canvas id="${device}-spoChart"></canvas>
     <button class="open-btn"
@@ -125,30 +130,25 @@ function showActive(card, device) {
 }
 
 async function loadDevice(device) {
-  const card = document.getElementById(device);
-
   try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
     if (!Array.isArray(data) || data.length === 0) {
-      showAvailable(card, device);
+      showAvailable(device);
       return;
     }
 
     const last = data[data.length - 1];
     const lastTime = new Date(last.time).getTime();
-    const now = Date.now();
 
-    // 🔴 الجهاز مفصول
-    if (now - lastTime > OFFLINE_TIMEOUT) {
-      showAvailable(card, device);
+    if (Date.now() - lastTime > OFFLINE_TIMEOUT) {
+      showAvailable(device);
       return;
     }
 
-    // 🟢 الجهاز متصل
     if (!charts[device]) {
-      showActive(card, device);
+      showActive(device);
     }
 
     document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
@@ -163,7 +163,7 @@ async function loadDevice(device) {
     charts[device].spo.update();
 
   } catch {
-    showAvailable(card, device);
+    showAvailable(device);
   }
 }
 
