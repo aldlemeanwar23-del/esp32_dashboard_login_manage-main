@@ -45,6 +45,7 @@ body {
   padding:30px;
 }
 .device-card {
+  position: relative;
   background:var(--card);
   border:1px solid var(--border);
   border-radius:16px;
@@ -52,12 +53,26 @@ body {
   backdrop-filter:blur(14px);
   box-shadow:0 10px 30px rgba(0,0,0,.4);
   transition:.3s;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
 }
 .device-card:hover { transform:translateY(-4px); }
 .device-card h3 { margin:0 0 15px; color:var(--primary); }
-.data { display:flex; justify-content:space-between; margin:8px 0; }
+.data { display:flex; justify-content:space-between; margin:8px 0; width: 100%; }
 .label { opacity:.7; }
 .value { font-weight:600; }
+.empty-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #00ffff;
+  font-size: 18px;
+  text-align: center;
+  font-weight: 600;
+}
 .open-btn {
   margin-top:15px;
   width:100%;
@@ -103,10 +118,11 @@ devices.forEach(device => {
   const card = document.getElementById(device);
   card.innerHTML = `
     <h3>${device.toUpperCase()}</h3>
-    <div class="data"><span class="label">Heart Rate</span> <span class="value" id="${device}-hr">الجهاز متاح</span></div>
-    <div class="data"><span class="label">SpO₂</span> <span class="value" id="${device}-spo">الجهاز متاح</span></div>
+    <div class="data"><span class="label">Heart Rate</span> <span class="value" id="${device}-hr"></span></div>
+    <div class="data"><span class="label">SpO₂</span> <span class="value" id="${device}-spo"></span></div>
     <canvas id="${device}-hrChart"></canvas>
     <canvas id="${device}-spoChart"></canvas>
+    <div class="empty-message" id="${device}-empty">الجهاز متاح</div>
     <button class="open-btn" onclick="location.href='device.html?device=${device}'">Open Device</button>
   `;
 
@@ -129,9 +145,11 @@ async function loadDevice(device) {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
+    const emptyMessage = document.getElementById(`${device}-empty`);
     if (!data || data.length===0) {
-      document.getElementById(`${device}-hr`).innerText = 'الجهاز متاح';
-      document.getElementById(`${device}-spo`).innerText = 'الجهاز متاح';
+      emptyMessage.style.display = 'block';
+      document.getElementById(`${device}-hr`).innerText = '';
+      document.getElementById(`${device}-spo`).innerText = '';
       charts[device].hrChart.data.labels = [];
       charts[device].hrChart.data.datasets[0].data = [];
       charts[device].hrChart.update();
@@ -141,6 +159,7 @@ async function loadDevice(device) {
       return;
     }
 
+    emptyMessage.style.display = 'none';
     const last = data[data.length-1];
     document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
     document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
@@ -152,6 +171,7 @@ async function loadDevice(device) {
     charts[device].spoChart.data.labels = data.map(()=> '');
     charts[device].spoChart.data.datasets[0].data = data.map(r => r.spo2);
     charts[device].spoChart.update();
+
   } catch(e) {
     console.error('Error loading device', device, e);
   }
