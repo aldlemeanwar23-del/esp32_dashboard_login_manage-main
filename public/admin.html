@@ -16,7 +16,7 @@
 body {
   margin:0;
   font-family:Segoe UI, Arial;
-  background:var(--bg);
+  background:#020617;
   color:#e5e7eb;
 }
 .top-bar {
@@ -49,26 +49,18 @@ body {
   border:1px solid var(--border);
   border-radius:16px;
   padding:20px;
-  min-height:300px;
+  min-height:260px;
   position:relative;
-  display:flex;
-  flex-direction:column;
 }
 
 .device-card h3 {
   margin:0 0 8px;
   color:var(--primary);
-  font-size:20px;
-}
-
-.patient-name {
-  font-size:18px;
-  color:#00ffff;
-  margin-bottom:10px;
 }
 
 .status {
-  flex:1;
+  position:absolute;
+  inset:0;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -77,7 +69,7 @@ body {
   color:#22c55e;
 }
 
-.content { display:none; flex-direction:column; flex:1; }
+.content { display:none; }
 
 .data {
   display:flex;
@@ -85,7 +77,14 @@ body {
   margin:6px 0;
 }
 
-canvas { height:80px !important; margin-top:8px; }
+.data span.label {
+  opacity:0.7;
+}
+
+canvas {
+  height:90px !important;
+  margin-top:8px;
+}
 
 .open-btn {
   width:100%;
@@ -123,91 +122,76 @@ const devices = ['max1','max2','max3','max4'];
 const charts = {};
 const container = document.getElementById('devices');
 
-async function fetchPatients() {
-  try {
-    const res = await fetch('/api/infoGet');
-    const data = await res.json();
-    return data; // [{device_id:"max1",p_name:"Ahmed"}, ...]
-  } catch {
-    return [];
-  }
-}
+devices.forEach(d => {
+  const card = document.createElement('div');
+  card.className = 'device-card';
+  card.id = d;
 
-async function createCards() {
-  const patients = await fetchPatients();
+  card.innerHTML = `
+    <h3>${d.toUpperCase()}</h3>
 
-  devices.forEach(d => {
-    const patient = patients.find(p=>p.device_id===d);
+    <div class="content">
+      <div class="data"><span class="label">Heart Rate</span><b id="${d}-hr">--</b></div>
+      <div class="data"><span class="label">SpO₂</span><b id="${d}-spo">--</b></div>
+      <div class="data"><span class="label">Patient Name</span><b id="${d}-patient">--</b></div>
+      <canvas id="${d}-hrChart"></canvas>
+      <canvas id="${d}-spoChart"></canvas>
+      <button class="open-btn" onclick="location.href='device.html?device=${d}'">Open Device</button>
+    </div>
 
-    const card = document.createElement('div');
-    card.className='device-card';
-    card.id=d;
+    <div class="status">الجهاز متاح</div>
+  `;
+  container.appendChild(card);
 
-    card.innerHTML=`
-      <h3>${d.toUpperCase()}</h3>
-      <div class="patient-name">${patient ? patient.p_name : 'No patient'}</div>
-
-      <div class="content">
-        <div class="data"><span>Heart Rate</span><b id="${d}-hr">--</b></div>
-        <div class="data"><span>SpO₂</span><b id="${d}-spo">--</b></div>
-        <canvas id="${d}-hrChart"></canvas>
-        <canvas id="${d}-spoChart"></canvas>
-        <button class="open-btn" onclick="location.href='device.html?device=${d}'">Open Device</button>
-      </div>
-
-      <div class="status">الجهاز متاح</div>
-    `;
-
-    container.appendChild(card);
-
-    charts[d] = {
-      hr: new Chart(document.getElementById(`${d}-hrChart`), {
-        type:'line',
-        data:{labels:[], datasets:[{data:[], borderColor:'#00ffff'}]},
-        options:{responsive:true, animation:false}
-      }),
-      spo: new Chart(document.getElementById(`${d}-spoChart`), {
-        type:'line',
-        data:{labels:[], datasets:[{data:[], borderColor:'#ff00ff'}]},
-        options:{responsive:true, animation:false}
-      })
-    };
-  });
-}
+  charts[d] = {
+    hr: new Chart(document.getElementById(`${d}-hrChart`), {
+      type:'line',
+      data:{labels:[],datasets:[{data:[],borderColor:'#00ffff'}]},
+      options:{responsive:true,animation:false}
+    }),
+    spo: new Chart(document.getElementById(`${d}-spoChart`), {
+      type:'line',
+      data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff'}]},
+      options:{responsive:true,animation:false}
+    })
+  };
+});
 
 function clearCard(device){
-  const card=document.getElementById(device);
-  card.querySelector('.content').style.display='none';
-  card.querySelector('.status').style.display='flex';
+  const card = document.getElementById(device);
+  card.querySelector('.content').style.display = 'none';
+  card.querySelector('.status').style.display = 'flex';
 
-  charts[device].hr.data.labels=[];
-  charts[device].hr.data.datasets[0].data=[];
-  charts[device].spo.data.labels=[];
-  charts[device].spo.data.datasets[0].data=[];
+  // امسح البيانات
+  charts[device].hr.data.labels = [];
+  charts[device].hr.data.datasets[0].data = [];
+  charts[device].spo.data.labels = [];
+  charts[device].spo.data.datasets[0].data = [];
   charts[device].hr.update();
   charts[device].spo.update();
 
-  document.getElementById(`${device}-hr`).innerText='--';
-  document.getElementById(`${device}-spo`).innerText='--';
+  // امسح اسم المريض
+  document.getElementById(`${device}-patient`).innerText = '--';
 }
 
-function showData(device,row){
-  const card=document.getElementById(device);
-  card.querySelector('.status').style.display='none';
-  card.querySelector('.content').style.display='flex';
+function showData(device, row){
+  const card = document.getElementById(device);
+  card.querySelector('.status').style.display = 'none';
+  card.querySelector('.content').style.display = 'block';
 
-  document.getElementById(`${device}-hr`).innerText=row.heartrate;
-  document.getElementById(`${device}-spo`).innerText=row.spo2;
+  document.getElementById(`${device}-hr`).innerText = row.heartrate;
+  document.getElementById(`${device}-spo`).innerText = row.spo2;
+  document.getElementById(`${device}-patient`).innerText = row.p_name || '--';
 
-  const hrC=charts[device].hr;
-  const spoC=charts[device].spo;
+  const hrC = charts[device].hr;
+  const spoC = charts[device].spo;
 
   hrC.data.labels.push('');
   hrC.data.datasets[0].data.push(row.heartrate);
   spoC.data.labels.push('');
   spoC.data.datasets[0].data.push(row.spo2);
 
-  if(hrC.data.labels.length>15){
+  if (hrC.data.labels.length > 15) {
     hrC.data.labels.shift();
     hrC.data.datasets[0].data.shift();
     spoC.data.labels.shift();
@@ -220,39 +204,35 @@ function showData(device,row){
 
 async function loadDevice(device){
   try {
-    const res=await fetch(`/api/sensor?device=${device}`);
-    const data=await res.json();
+    const res = await fetch(`/api/sensor?device=${device}`);
+    const data = await res.json();
 
-    if(!Array.isArray(data) || data.length===0){
+    if (!Array.isArray(data) || data.length === 0) {
       clearCard(device);
       return;
     }
 
-    const last=data[data.length-1];
-    const age=Date.now()-new Date(last.time).getTime();
+    const last = data[data.length - 1];
+    const age = Date.now() - new Date(last.time).getTime();
 
-    if(age>10000){ // إذا كانت آخر قراءة أقدم من 10 ثواني
+    if (age > 10000) {
       clearCard(device);
       return;
     }
 
-    showData(device,last);
+    showData(device, last);
 
   } catch {
     clearCard(device);
   }
 }
 
-async function loadAll(){
-  for(const d of devices){
-    await loadDevice(d);
-  }
+function loadAll(){
+  devices.forEach(loadDevice);
 }
 
-createCards().then(()=> {
-  loadAll();
-  setInterval(loadAll,2000);
-});
+loadAll();
+setInterval(loadAll, 2000);
 </script>
 
 </body>
