@@ -25,27 +25,27 @@ header button:hover { background:#00bcd4; }
 
 .results {
   display: flex;
-  justify-content: center; /* لتوسيط البطاقات */
+  justify-content: center;
   gap: 15px;
 }
 
-.result-card {
-  flex: 0 0 250px; /* عرض ثابت */
+.result-card, .patient-card {
+  flex: 0 0 180px; /* عرض ثابت أصغر */
   background: rgba(0,255,255,0.1);
-  padding: 15px;
+  padding: 12px;
   border-radius: 12px;
   text-align: center;
 }
 
-.result-card h3 { font-size:28px; color:#00ffff; margin-bottom:10px; }
-.result-card .value { font-size:28px; font-weight:bold; }
-
-/* Patient Name */
-.patient-name {
-  font-size:28px;
-  font-weight:bold;
+.result-card h3, .patient-card h3 {
+  font-size:20px;
   color:#00ffff;
-  margin-bottom:10px;
+  margin-bottom:8px;
+}
+
+.result-card .value, .patient-card .value {
+  font-size:22px;
+  font-weight:bold;
 }
 
 /* Charts عمودي */
@@ -53,7 +53,7 @@ header button:hover { background:#00bcd4; }
   display:flex; flex-direction:column; align-items:center; gap:15px;
 }
 .chart-container {
-  width:90%; height:200px; /* عرض وارتفاع ثابت */
+  width:90%; height:180px; /* عرض وارتفاع ثابت أصغر */
 }
 </style>
 </head>
@@ -74,9 +74,11 @@ header button:hover { background:#00bcd4; }
       <h3>SpO₂</h3>
       <div class="value" id="spo">-- %</div>
     </div>
+    <div class="patient-card">
+      <h3>Patient Name</h3>
+      <div class="value" id="patientName">--</div>
+    </div>
   </div>
-
-  <div class="result-card patient-name" id="patientName">Patient Name: --</div>
 
   <div class="charts">
     <div class="chart-container"><canvas id="hrChart"></canvas></div>
@@ -97,9 +99,9 @@ async function loadPatientName() {
     const res = await fetch('/api/infoGet');
     const data = await res.json();
     const patient = data.find(p => p.device_id === device);
-    document.getElementById('patientName').innerText = patient ? `Patient Name: ${patient.p_name}` : 'Patient Name: --';
+    document.getElementById('patientName').innerText = patient ? patient.p_name : '--';
   } catch {
-    document.getElementById('patientName').innerText = 'Patient Name: --';
+    document.getElementById('patientName').innerText = '--';
   }
 }
 
