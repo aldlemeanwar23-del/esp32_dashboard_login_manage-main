@@ -24,60 +24,40 @@ body {
   justify-content:space-between;
   align-items:center;
   padding:18px 30px;
-  background:#020617;
+  background:rgba(2,6,23,.9);
   border-bottom:1px solid var(--border);
 }
 .top-bar h2 { margin:0; color:var(--primary); }
-.top-bar button {
-  padding:8px 15px;
-  background:var(--primary);
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  color:#fff;
-  font-weight:600;
-}
+
 .container {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
   gap:20px;
   padding:30px;
 }
+
 .device-card {
   background:var(--card);
   border:1px solid var(--border);
   border-radius:16px;
   padding:22px;
-  box-shadow:0 10px 30px rgba(0,0,0,.4);
+  min-height:260px;
+  position:relative;
 }
+
 .device-card h3 {
   margin:0 0 10px;
   color:var(--primary);
 }
-.data {
-  display:flex;
-  justify-content:space-between;
-  margin:6px 0;
-}
+
+.data { display:flex; justify-content:space-between; margin:6px 0; }
+.label { opacity:.7; }
 .value { font-weight:600; }
 
-.empty {
-  display:none;
-  height:160px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:20px;
-  opacity:.7;
-}
-
-canvas {
-  height:120px !important;
-  margin-top:8px;
-}
+canvas { height:100px !important; margin-top:8px; }
 
 .open-btn {
-  margin-top:15px;
+  margin-top:10px;
   width:100%;
   padding:10px;
   border-radius:10px;
@@ -87,10 +67,24 @@ canvas {
   font-weight:700;
   cursor:pointer;
 }
+
 .open-btn:disabled {
-  background:#374151;
+  background:#334155;
+  color:#94a3b8;
   cursor:not-allowed;
 }
+
+.status {
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  font-weight:700;
+  color:#22c55e;
+}
+.hidden { display:none; }
 </style>
 </head>
 
@@ -98,10 +92,6 @@ canvas {
 
 <div class="top-bar">
   <h2>🩺 Admin Dashboard</h2>
-  <div>
-    <button onclick="location.href='manage.html'">Patients</button>
-    <button onclick="logout()">Logout</button>
-  </div>
 </div>
 
 <div class="container">
@@ -112,56 +102,49 @@ canvas {
 </div>
 
 <script>
-function logout(){
-  localStorage.removeItem('auth');
-  location.href='/login.html';
-}
-
 const devices = ['max1','max2','max3','max4'];
 const charts = {};
-const TIMEOUT = 5000; // 5 ثواني
+const TIMEOUT = 7000; // 7 ثواني يعتبر Offline
 
 devices.forEach(device => {
   const card = document.getElementById(device);
-
   card.innerHTML = `
     <h3>${device.toUpperCase()}</h3>
 
-    <div id="${device}-content">
-      <div class="data"><span>Heart Rate</span><span class="value" id="${device}-hr">--</span></div>
-      <div class="data"><span>SpO₂</span><span class="value" id="${device}-spo">--</span></div>
+    <div class="content hidden" id="${device}-content">
+      <div class="data"><span class="label">Heart Rate</span><span class="value" id="${device}-hr"></span></div>
+      <div class="data"><span class="label">SpO₂</span><span class="value" id="${device}-spo"></span></div>
+
       <canvas id="${device}-hrChart"></canvas>
       <canvas id="${device}-spoChart"></canvas>
+
+      <button class="open-btn" id="${device}-btn"
+        onclick="location.href='device.html?device=${device}'">
+        Open Device
+      </button>
     </div>
 
-    <div class="empty" id="${device}-empty">الجهاز متاح</div>
-
-    <button class="open-btn" id="${device}-btn"
-      onclick="location.href='device.html?device=${device}'">
-      Open Device
-    </button>
+    <div class="status" id="${device}-status">الجهاز متاح</div>
   `;
 
   charts[device] = {
     hr: new Chart(document.getElementById(`${device}-hrChart`), {
       type:'line',
-      data:{labels:[],datasets:[{data:[],borderColor:'#00ffff',fill:true}]},
+      data:{labels:[],datasets:[{data:[],borderColor:'#00ffff'}]},
       options:{responsive:true,animation:false}
     }),
     spo: new Chart(document.getElementById(`${device}-spoChart`), {
       type:'line',
-      data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff',fill:true}]},
+      data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff'}]},
       options:{responsive:true,animation:false}
     })
   };
-
-  resetCard(device);
 });
 
-function resetCard(device){
-  document.getElementById(`${device}-content`).style.display = 'none';
-  document.getElementById(`${device}-empty`).style.display = 'flex';
-  document.getElementById(`${device}-btn`).disabled = true;
+function setOffline(device) {
+  document.getElementById(`${device}-content`).classList.add('hidden');
+  document.getElementById(`${device}-status`).classList.remove('hidden');
+  document.getElementById(`${device}-btn`)?.setAttribute('disabled', true);
 
   charts[device].hr.data.labels = [];
   charts[device].hr.data.datasets[0].data = [];
@@ -172,50 +155,45 @@ function resetCard(device){
   charts[device].spo.update();
 }
 
-function showData(device, last, data){
-  document.getElementById(`${device}-content`).style.display = 'block';
-  document.getElementById(`${device}-empty`).style.display = 'none';
-  document.getElementById(`${device}-btn`).disabled = false;
-
-  document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
-  document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
-
-  charts[device].hr.data.labels = data.map(()=> '');
-  charts[device].hr.data.datasets[0].data = data.map(r=>r.heartrate);
-  charts[device].hr.update();
-
-  charts[device].spo.data.labels = data.map(()=> '');
-  charts[device].spo.data.datasets[0].data = data.map(r=>r.spo2);
-  charts[device].spo.update();
-}
-
-async function loadDevice(device){
+async function loadDevice(device) {
   try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
     if (!data || data.length === 0) {
-      resetCard(device);
+      setOffline(device);
       return;
     }
 
     const last = data[data.length - 1];
     const lastTime = new Date(last.time).getTime();
-    const diff = Date.now() - lastTime;
 
-    if (diff > TIMEOUT) {
-      resetCard(device);
+    if (Date.now() - lastTime > TIMEOUT) {
+      setOffline(device);
       return;
     }
 
-    showData(device, last, data.slice(-20));
-  } catch (e) {
-    console.error(device, e);
-    resetCard(device);
+    document.getElementById(`${device}-status`).classList.add('hidden');
+    document.getElementById(`${device}-content`).classList.remove('hidden');
+    document.getElementById(`${device}-btn`).removeAttribute('disabled');
+
+    document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
+    document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
+
+    charts[device].hr.data.labels = data.map(d => '');
+    charts[device].hr.data.datasets[0].data = data.map(d => d.heartrate);
+    charts[device].hr.update();
+
+    charts[device].spo.data.labels = data.map(d => '');
+    charts[device].spo.data.datasets[0].data = data.map(d => d.spo2);
+    charts[device].spo.update();
+
+  } catch {
+    setOffline(device);
   }
 }
 
-function loadAll(){
+function loadAll() {
   devices.forEach(loadDevice);
 }
 
