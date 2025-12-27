@@ -5,188 +5,109 @@
 <title>Device Details</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-body, html {
-  margin:0; padding:0;
-  width:100%; height:100%;
-  font-family: 'Segoe UI', Arial, sans-serif;
+body {
+  margin:0;
+  font-family:Segoe UI;
   background:#0a0f1a;
   color:#fff;
-  display:flex;
-  flex-direction:column;
 }
 header {
   display:flex;
   justify-content:space-between;
-  align-items:center;
   padding:15px 25px;
   background:#001f2f;
   color:#00ffff;
-  font-size:20px;
 }
-header button {
-  padding:8px 16px;
-  border:none;
-  border-radius:6px;
-  background:#00ffff;
-  color:#020617;
-  font-weight:bold;
-  cursor:pointer;
-}
-header button:hover { background:#00bcd4; }
 .container {
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:flex-start;
   padding:20px;
-  gap:20px;
 }
 .results {
   display:flex;
-  gap:20px;
+  gap:15px;
+  margin-bottom:20px;
 }
-.result-card {
-  background: rgba(0,255,255,0.1);
-  padding:15px 25px;
+.card {
+  flex:1;
+  background:rgba(0,255,255,.1);
+  padding:15px;
   border-radius:12px;
   text-align:center;
-}
-.result-card h3 { color:#00ffff; margin-bottom:10px; }
-.result-card .value { font-size:28px; font-weight:bold; }
-.charts {
-  display:flex;
-  flex-direction:column;
-  gap:15px;
-  width:80%;
-  max-width:600px;
 }
 canvas {
   width:100%;
-  height:200px;
+  height:160px !important;
+  background:rgba(0,0,0,.3);
   border-radius:12px;
-  background: rgba(0,0,0,0.2);
-}
-.empty-message {
-  color:#00ffff;
-  font-weight:bold;
-  font-size:20px;
-  text-align:center;
-  margin-top:50px;
+  margin-bottom:15px;
 }
 </style>
 </head>
 <body>
 
 <header>
-  <span>Device Details: <span id="deviceName"></span></span>
-  <button onclick="location.href='admin.html'">← Back</button>
+  <div>Device: <span id="deviceName"></span></div>
+  <button onclick="history.back()">← Back</button>
 </header>
 
 <div class="container">
   <div class="results">
-    <div class="result-card">
+    <div class="card">
       <h3>Heart Rate</h3>
-      <div class="value" id="hr">-- BPM</div>
+      <div id="hr">--</div>
     </div>
-    <div class="result-card">
+    <div class="card">
       <h3>SpO₂</h3>
-      <div class="value" id="spo">-- %</div>
+      <div id="spo">--</div>
     </div>
   </div>
 
-  <div id="empty" class="empty-message">الجهاز متاح</div>
-
-  <div class="charts">
-    <canvas id="hrChart"></canvas>
-    <canvas id="spoChart"></canvas>
-  </div>
+  <canvas id="hrChart"></canvas>
+  <canvas id="spoChart"></canvas>
 </div>
 
 <script>
 const params = new URLSearchParams(window.location.search);
-const device = params.get('device') || 'max1';
+const device = params.get('device'); // ✔️ التصحيح المهم
+
 document.getElementById('deviceName').innerText = device.toUpperCase();
 
-const hrEl = document.getElementById('hr');
-const spoEl = document.getElementById('spo');
-const emptyEl = document.getElementById('empty');
-const hrCanvas = document.getElementById('hrChart');
-const spoCanvas = document.getElementById('spoChart');
-
-let labels=[], hrData=[], spoData=[];
-
-const hrChart = new Chart(hrCanvas, {
+const hrChart = new Chart(hrChartEl = document.getElementById('hrChart'), {
   type:'line',
-  data:{labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', fill:false}]},
-  options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
+  data:{labels:[],datasets:[{data:[],borderColor:'#00ffff'}]},
+  options:{animation:false,maintainAspectRatio:false}
 });
 
-const spoChart = new Chart(spoCanvas, {
+const spoChart = new Chart(document.getElementById('spoChart'), {
   type:'line',
-  data:{labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', fill:false}]},
-  options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
+  data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff'}]},
+  options:{animation:false,maintainAspectRatio:false}
 });
 
-async function loadData(){
-  try {
-    const res = await fetch(`/api/sensor?device=${device}`);
-    const data = await res.json();
+async function load(){
+  const res = await fetch(`/api/sensor?device=${device}`);
+  const data = await res.json();
 
-    if(!data || !data.heartrate || !data.spo2){
-      hrEl.innerText='--';
-      spoEl.innerText='--';
-      emptyEl.style.display='block';
-      hrCanvas.style.display='none';
-      spoCanvas.style.display='none';
-      hrChart.data.labels=[];
-      hrChart.data.datasets[0].data=[];
-      hrChart.update();
-      spoChart.data.labels=[];
-      spoChart.data.datasets[0].data=[];
-      spoChart.update();
-      return;
-    }
+  if(!Array.isArray(data) || data.length === 0) return;
 
-    emptyEl.style.display='none';
-    hrCanvas.style.display='block';
-    spoCanvas.style.display='block';
+  const last = data[data.length - 1];
+  document.getElementById('hr').innerText = last.heartrate + ' BPM';
+  document.getElementById('spo').innerText = last.spo2 + ' %';
 
-    hrEl.innerText = data.heartrate+' BPM';
-    spoEl.innerText = data.spo2+' %';
+  const t = new Date(last.time).toLocaleTimeString();
 
-    const timeLabel = new Date(data.time).toLocaleTimeString();
+  hrChart.data.labels.push(t);
+  hrChart.data.datasets[0].data.push(last.heartrate);
+  hrChart.update();
 
-    if(hrChart.data.labels.length>=20){
-      hrChart.data.labels.shift();
-      hrChart.data.datasets[0].data.shift();
-    }
-    hrChart.data.labels.push(timeLabel);
-    hrChart.data.datasets[0].data.push(data.heartrate);
-    hrChart.update();
-
-    if(spoChart.data.labels.length>=20){
-      spoChart.data.labels.shift();
-      spoChart.data.datasets[0].data.shift();
-    }
-    spoChart.data.labels.push(timeLabel);
-    spoChart.data.datasets[0].data.push(data.spo2);
-    spoChart.update();
-
-  } catch(err){
-    console.error('Error fetching device data:', err);
-    hrEl.innerText='--';
-    spoEl.innerText='--';
-    emptyEl.style.display='block';
-    hrCanvas.style.display='none';
-    spoCanvas.style.display='none';
-  }
+  spoChart.data.labels.push(t);
+  spoChart.data.datasets[0].data.push(last.spo2);
+  spoChart.update();
 }
 
-// أول تحميل + تحديث تلقائي
-loadData();
-setInterval(loadData,2000);
+load();
+setInterval(load,2000);
 </script>
 
 </body>
