@@ -7,188 +7,194 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+:root {
+  --primary:#0ea5e9;
+  --bg:#020617;
+  --card:rgba(255,255,255,.08);
+  --border:rgba(255,255,255,.15);
+}
 body {
   margin:0;
-  font-family:Segoe UI;
-  background:#0a0f1a;
-  color:#fff;
+  font-family:Segoe UI, Arial;
+  background:#020617;
+  color:#e5e7eb;
 }
-header {
-  padding:15px 25px;
-  background:#001f2f;
-  color:#00ffff;
-  font-size:20px;
+.top-bar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:18px 30px;
+  border-bottom:1px solid var(--border);
 }
-.devices {
+.container {
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
   gap:20px;
-  padding:20px;
+  padding:30px;
 }
-.card {
-  background:rgba(0,255,255,0.08);
-  border-radius:14px;
-  padding:15px;
-  cursor:pointer;
-  transition:.2s;
+.device-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:22px;
+  transition:.3s;
 }
-.card:hover {
-  transform:scale(1.02);
-}
-.card.disabled {
-  cursor:default;
+.device-card.disabled {
   opacity:.6;
 }
-.title {
-  font-size:18px;
-  margin-bottom:10px;
+.device-card h3 {
+  margin:0 0 10px;
+  color:var(--primary);
 }
-.values {
+.data {
   display:flex;
-  justify-content:space-around;
-  margin-bottom:10px;
-}
-.value {
-  text-align:center;
+  justify-content:space-between;
+  margin:8px 0;
 }
 .status {
   text-align:center;
-  color:#aaa;
-  font-size:16px;
-  display:none;
+  font-size:18px;
+  margin:30px 0;
+  color:#22c55e;
+}
+.open-btn {
+  width:100%;
+  margin-top:15px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  font-weight:700;
+  cursor:pointer;
+  background:#22c55e;
+  color:#020617;
+}
+.open-btn:disabled {
+  background:#555;
+  cursor:not-allowed;
 }
 canvas {
-  width:100%;
-  height:80px !important;
+  height:120px !important;
 }
 </style>
 </head>
 
 <body>
 
-<header>Admin Dashboard</header>
+<div class="top-bar">
+  <h2>🩺 Admin Dashboard</h2>
+</div>
 
-<div class="devices" id="devices"></div>
+<div class="container" id="devices"></div>
 
 <script>
-const DEVICE_LIST = ['max1','max2','max3'];
+const deviceList = ['max1','max2','max3','max4'];
 const charts = {};
-const TIMEOUT = 10000; // 10 ثواني
 
 const container = document.getElementById('devices');
 
-/* إنشاء البطاقات */
-DEVICE_LIST.forEach(d=>{
-  const card = document.createElement('div');
-  card.className = 'card disabled';
-  card.id = `card-${d}`;
-  card.onclick = ()=>openDevice(d);
+deviceList.forEach(d => {
+  container.innerHTML += `
+    <div class="device-card disabled" id="card-${d}">
+      <h3>${d.toUpperCase()}</h3>
 
-  card.innerHTML = `
-    <div class="title">${d.toUpperCase()}</div>
+      <div id="${d}-status" class="status">الجهاز متاح</div>
 
-    <div class="values" id="${d}-values">
-      <div class="value">
-        <div id="${d}-hr">--</div>
-        <small>HR</small>
+      <div id="${d}-values" style="display:none">
+        <div class="data"><span>Heart Rate</span><span id="${d}-hr">--</span></div>
+        <div class="data"><span>SpO₂</span><span id="${d}-spo">--</span></div>
+        <canvas id="${d}-hrChart"></canvas>
+        <canvas id="${d}-spoChart"></canvas>
       </div>
-      <div class="value">
-        <div id="${d}-spo">--</div>
-        <small>SpO₂</small>
-      </div>
+
+      <button class="open-btn" id="${d}-btn" disabled
+        onclick="location.href='device.html?device=${d}'">
+        Open Device
+      </button>
     </div>
-
-    <div class="status" id="${d}-status">الجهاز متاح</div>
-
-    <canvas id="${d}-hrChart"></canvas>
-    <canvas id="${d}-spoChart"></canvas>
   `;
-  container.appendChild(card);
 
   charts[d] = {
-    hr:new Chart(document.getElementById(`${d}-hrChart`),{
+    hr: new Chart(document.getElementById(`${d}-hrChart`), {
       type:'line',
       data:{labels:[],datasets:[{data:[],borderColor:'#00ffff'}]},
-      options:{animation:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}
+      options:{animation:false,responsive:true}
     }),
-    spo:new Chart(document.getElementById(`${d}-spoChart`),{
+    spo: new Chart(document.getElementById(`${d}-spoChart`), {
       type:'line',
       data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff'}]},
-      options:{animation:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}
+      options:{animation:false,responsive:true}
     })
   };
 });
 
-/* تحميل بيانات الجهاز */
-async function loadDevice(device){
-  try{
+function setAvailable(device) {
+  const card = document.getElementById(`card-${device}`);
+  card.classList.add('disabled');
+
+  document.getElementById(`${device}-status`).style.display = 'block';
+  document.getElementById(`${device}-values`).style.display = 'none';
+  document.getElementById(`${device}-btn`).disabled = true;
+
+  charts[device].hr.data.labels = [];
+  charts[device].hr.data.datasets[0].data = [];
+  charts[device].hr.update();
+
+  charts[device].spo.data.labels = [];
+  charts[device].spo.data.datasets[0].data = [];
+  charts[device].spo.update();
+}
+
+function setActive(device, data) {
+  const card = document.getElementById(`card-${device}`);
+  card.classList.remove('disabled');
+
+  document.getElementById(`${device}-status`).style.display = 'none';
+  document.getElementById(`${device}-values`).style.display = 'block';
+  document.getElementById(`${device}-btn`).disabled = false;
+
+  document.getElementById(`${device}-hr`).innerText = data.heartrate;
+  document.getElementById(`${device}-spo`).innerText = data.spo2;
+
+  charts[device].hr.data.labels = [''];
+  charts[device].hr.data.datasets[0].data = [data.heartrate];
+  charts[device].hr.update();
+
+  charts[device].spo.data.labels = [''];
+  charts[device].spo.data.datasets[0].data = [data.spo2];
+  charts[device].spo.update();
+}
+
+async function loadDevice(device) {
+  try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
-    if(!Array.isArray(data) || data.length===0){
+    if (!data || !data.time) {
       setAvailable(device);
       return;
     }
 
-    const last = data[data.length-1];
-    const lastTime = new Date(last.time).getTime();
+    const lastTime = new Date(data.time).getTime();
+    const now = Date.now();
 
-    if(Date.now() - lastTime > TIMEOUT){
+    if (now - lastTime > 10000) {
       setAvailable(device);
       return;
     }
 
-    setActive(device,last);
+    setActive(device, data);
 
-  }catch{
+  } catch {
     setAvailable(device);
   }
 }
 
-/* الجهاز متصل */
-function setActive(device,last){
-  document.getElementById(`card-${device}`).classList.remove('disabled');
-  document.getElementById(`${device}-status`).style.display='none';
-  document.getElementById(`${device}-values`).style.display='flex';
-
-  document.getElementById(`${device}-hr`).innerText = last.heartrate;
-  document.getElementById(`${device}-spo`).innerText = last.spo2;
-
-  charts[device].hr.data.labels=[''];
-  charts[device].hr.data.datasets[0].data=[last.heartrate];
-  charts[device].hr.update();
-
-  charts[device].spo.data.labels=[''];
-  charts[device].spo.data.datasets[0].data=[last.spo2];
-  charts[device].spo.update();
+function loadAll() {
+  deviceList.forEach(loadDevice);
 }
 
-/* الجهاز متاح (فصل) */
-function setAvailable(device){
-  document.getElementById(`card-${device}`).classList.add('disabled');
-
-  document.getElementById(`${device}-values`).style.display='none';
-  document.getElementById(`${device}-status`).style.display='block';
-
-  charts[device].hr.data.labels=[];
-  charts[device].hr.data.datasets[0].data=[];
-  charts[device].hr.update();
-
-  charts[device].spo.data.labels=[];
-  charts[device].spo.data.datasets[0].data=[];
-  charts[device].spo.update();
-}
-
-/* فتح صفحة الجهاز */
-function openDevice(device){
-  const card = document.getElementById(`card-${device}`);
-  if(card.classList.contains('disabled')) return;
-  window.location.href = `device.html?device=${device}`;
-}
-
-/* تحديث دوري */
-DEVICE_LIST.forEach(loadDevice);
-setInterval(()=>DEVICE_LIST.forEach(loadDevice),2000);
+loadAll();
+setInterval(loadAll, 2000);
 </script>
 
 </body>
