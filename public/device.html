@@ -5,120 +5,213 @@
 <title>Device Details</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-* { box-sizing: border-box; margin:0; padding:0; }
-body, html { width:100%; height:100%; font-family:'Segoe UI', Arial; background:#0a0f1a; color:#fff; }
+* { box-sizing:border-box; margin:0; padding:0; }
+
+body {
+  font-family:Segoe UI, Arial;
+  background:#020617;
+  color:#e5e7eb;
+  height:100vh;
+}
 
 header {
-  display:flex; justify-content:space-between; align-items:center;
-  padding:15px 25px; background:#001f2f; color:#00ffff; font-size:20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px 25px;
+  background:#020617;
+  border-bottom:1px solid rgba(255,255,255,.15);
 }
+
+header span {
+  color:#0ea5e9;
+  font-size:20px;
+  font-weight:700;
+}
+
 header button {
-  padding:8px 16px; border:none; border-radius:6px;
-  background:#00ffff; color:#020617; font-weight:bold; cursor:pointer;
+  padding:8px 16px;
+  border:none;
+  border-radius:8px;
+  background:#0ea5e9;
+  color:#020617;
+  font-weight:700;
+  cursor:pointer;
 }
-header button:hover { background:#00bcd4; }
 
 .container {
-  display:flex; flex-direction:column; height:calc(100% - 60px); padding:15px 20px; gap:15px;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:15px;
 }
 
+/* ===== Status ===== */
+.status {
+  text-align:center;
+  font-size:22px;
+  font-weight:700;
+  color:#22c55e;
+  padding:40px 0;
+}
+
+.hidden { display:none; }
+
+/* ===== Results ===== */
 .results {
-  display: flex;
-  justify-content: center; /* لتوسيط البطاقات */
-  gap: 15px;
+  display:flex;
+  gap:15px;
 }
-
 .result-card {
-  flex: 0 0 250px; /* عرض ثابت 150px */
-  background: rgba(0,255,255,0.1);
-  padding: 15px;
-  border-radius: 12px;
-  text-align: center;
+  flex:1;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:14px;
+  padding:15px;
+  text-align:center;
+}
+.result-card h3 {
+  font-size:15px;
+  color:#0ea5e9;
+  margin-bottom:8px;
+}
+.result-card .value {
+  font-size:26px;
+  font-weight:700;
 }
 
-.result-card h3 { font-size:28px; color:#00ffff; margin-bottom:10px; }
-.result-card .value { font-size:28px; font-weight:bold; }
-
-/* Charts عمودي */
+/* ===== Charts ===== */
 .charts {
-  display:flex; flex-direction:column; align-items:center; gap:15px;
+  display:flex;
+  gap:15px;
 }
-.chart-container {
-  width:90%; height:200px; /* عرض وارتفاع ثابت */
+.chart-box {
+  flex:1;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:14px;
+  padding:10px;
+  height:260px;
+}
+
+canvas {
+  width:100% !important;
+  height:100% !important;
+}
+
+@media(max-width:900px) {
+  .results, .charts { flex-direction:column; }
 }
 </style>
 </head>
+
 <body>
 
 <header>
-  <span>Device Details: <span id="deviceName"></span></span>
+  <span>Device: <span id="deviceName"></span></span>
   <button onclick="location.href='admin.html'">← Back</button>
 </header>
 
 <div class="container">
-  <div class="results">
-    <div class="result-card">
-      <h3>Heart Rate</h3>
-      <div class="value" id="hr">-- BPM</div>
+
+  <div class="status" id="status">الجهاز متاح</div>
+
+  <div id="content" class="hidden">
+    <div class="results">
+      <div class="result-card">
+        <h3>Heart Rate</h3>
+        <div class="value" id="hr">--</div>
+      </div>
+      <div class="result-card">
+        <h3>SpO₂</h3>
+        <div class="value" id="spo">--</div>
+      </div>
     </div>
-    <div class="result-card">
-      <h3>SpO₂</h3>
-      <div class="value" id="spo">-- %</div>
+
+    <div class="charts">
+      <div class="chart-box"><canvas id="hrChart"></canvas></div>
+      <div class="chart-box"><canvas id="spoChart"></canvas></div>
     </div>
   </div>
 
-  <div class="charts">
-    <div class="chart-container"><canvas id="hrChart"></canvas></div>
-    <div class="chart-container"><canvas id="spoChart"></canvas></div>
-  </div>
 </div>
 
 <script>
 const params = new URLSearchParams(window.location.search);
-//const device = new URLSearchParams(window.location.search).get('device');
+const device = params.get('device');
+document.getElementById('deviceName').innerText = device?.toUpperCase() || '';
 
-const device = params.get('device') || 'max1';
-document.getElementById('deviceName').innerText = device.toUpperCase();
+const TIMEOUT = 7000;
 
-let labels=[], hrData=[], spoData=[];
-
-const hrChart = new Chart(document.getElementById('hrChart'), {
+let hrChart = new Chart(document.getElementById('hrChart'), {
   type:'line',
-  data:{ labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', backgroundColor:'rgba(0,255,255,0.2)', fill:true, tension:0.2}]},
-  options:{ responsive:true, maintainAspectRatio:false, animation:false, scales:{y:{beginAtZero:true}} }
+  data:{ labels:[], datasets:[{ data:[], borderColor:'#00ffff', fill:false }]},
+  options:{ responsive:true, animation:false }
 });
 
-const spoChart = new Chart(document.getElementById('spoChart'), {
+let spoChart = new Chart(document.getElementById('spoChart'), {
   type:'line',
-  data:{ labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', backgroundColor:'rgba(255,0,255,0.2)', fill:true, tension:0.2}]},
-  options:{ responsive:true, maintainAspectRatio:false, animation:false, scales:{y:{beginAtZero:true}} }
+  data:{ labels:[], datasets:[{ data:[], borderColor:'#ff00ff', fill:false }]},
+  options:{ responsive:true, animation:false }
 });
 
-async function loadData(){
-  try{
+function setOffline() {
+  document.getElementById('status').classList.remove('hidden');
+  document.getElementById('content').classList.add('hidden');
+
+  document.getElementById('hr').innerText = '--';
+  document.getElementById('spo').innerText = '--';
+
+  hrChart.data.labels = [];
+  hrChart.data.datasets[0].data = [];
+  hrChart.update();
+
+  spoChart.data.labels = [];
+  spoChart.data.datasets[0].data = [];
+  spoChart.update();
+}
+
+async function loadData() {
+  try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
-    if(!data || data.length===0) return;
 
-    const last = data[data.length-1];
-    document.getElementById('hr').innerText = last.heartrate+' BPM';
-    document.getElementById('spo').innerText = last.spo2+' %';
+    if (!data || data.length === 0) {
+      setOffline();
+      return;
+    }
 
-    labels.length = hrData.length = spoData.length = 0;
-    data.slice(-50).forEach(r=>{
-      labels.push('');
-      hrData.push(r.heartrate);
-      spoData.push(r.spo2);
-    });
+    const last = data[data.length - 1];
+    const lastTime = new Date(last.time).getTime();
 
+    if (Date.now() - lastTime > TIMEOUT) {
+      setOffline();
+      return;
+    }
+
+    document.getElementById('status').classList.add('hidden');
+    document.getElementById('content').classList.remove('hidden');
+
+    document.getElementById('hr').innerText = last.heartrate + ' BPM';
+    document.getElementById('spo').innerText = last.spo2 + ' %';
+
+    hrChart.data.labels = data.map(()=>'');
+    hrChart.data.datasets[0].data = data.map(r => r.heartrate);
     hrChart.update();
+
+    spoChart.data.labels = data.map(()=>'');
+    spoChart.data.datasets[0].data = data.map(r => r.spo2);
     spoChart.update();
-  }catch(e){ console.error(e); }
+
+  } catch {
+    setOffline();
+  }
 }
 
 loadData();
-setInterval(loadData,2000);
+setInterval(loadData, 2000);
 </script>
 
 </body>
