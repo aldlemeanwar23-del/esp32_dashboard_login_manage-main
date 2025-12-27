@@ -19,8 +19,6 @@ body {
   background:#020617;
   color:#e5e7eb;
 }
-
-/* top bar */
 .top-bar {
   display:flex;
   justify-content:space-between;
@@ -33,13 +31,12 @@ body {
   padding:8px 16px;
   border:none;
   border-radius:8px;
-  cursor:pointer;
   background:var(--primary);
   color:#fff;
   font-weight:600;
+  cursor:pointer;
 }
 
-/* layout */
 .container {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
@@ -47,7 +44,6 @@ body {
   padding:30px;
 }
 
-/* card */
 .device-card {
   background:var(--card);
   border:1px solid var(--border);
@@ -62,7 +58,6 @@ body {
   color:var(--primary);
 }
 
-/* status */
 .status {
   position:absolute;
   inset:0;
@@ -74,12 +69,14 @@ body {
   color:#22c55e;
 }
 
-/* data */
+.content { display:none; }
+
 .data {
   display:flex;
   justify-content:space-between;
   margin:6px 0;
 }
+
 canvas {
   height:90px !important;
   margin-top:8px;
@@ -119,17 +116,17 @@ function logout(){
 
 const devices = ['max1','max2','max3','max4'];
 const charts = {};
-
 const container = document.getElementById('devices');
 
 devices.forEach(d => {
   const card = document.createElement('div');
   card.className = 'device-card';
   card.id = d;
+
   card.innerHTML = `
     <h3>${d.toUpperCase()}</h3>
 
-    <div class="content" style="display:none">
+    <div class="content">
       <div class="data"><span>Heart Rate</span><b id="${d}-hr">--</b></div>
       <div class="data"><span>SpO₂</span><b id="${d}-spo">--</b></div>
       <canvas id="${d}-hrChart"></canvas>
@@ -155,7 +152,7 @@ devices.forEach(d => {
   };
 });
 
-function showAvailable(device){
+function clearCard(device){
   const card = document.getElementById(device);
   card.querySelector('.content').style.display = 'none';
   card.querySelector('.status').style.display = 'flex';
@@ -168,21 +165,21 @@ function showAvailable(device){
   charts[device].spo.update();
 }
 
-function showData(device, data){
+function showData(device, row){
   const card = document.getElementById(device);
   card.querySelector('.status').style.display = 'none';
   card.querySelector('.content').style.display = 'block';
 
-  document.getElementById(`${device}-hr`).innerText = data.heartrate;
-  document.getElementById(`${device}-spo`).innerText = data.spo2;
+  document.getElementById(`${device}-hr`).innerText = row.heartrate;
+  document.getElementById(`${device}-spo`).innerText = row.spo2;
 
   const hrC = charts[device].hr;
   const spoC = charts[device].spo;
 
   hrC.data.labels.push('');
-  hrC.data.datasets[0].data.push(data.heartrate);
+  hrC.data.datasets[0].data.push(row.heartrate);
   spoC.data.labels.push('');
-  spoC.data.datasets[0].data.push(data.spo2);
+  spoC.data.datasets[0].data.push(row.spo2);
 
   if (hrC.data.labels.length > 15) {
     hrC.data.labels.shift();
@@ -200,21 +197,23 @@ async function loadDevice(device){
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
-    if (!data || !data.time) {
-      showAvailable(device);
+    if (!Array.isArray(data) || data.length === 0) {
+      clearCard(device);
       return;
     }
 
-    const age = Date.now() - new Date(data.time).getTime();
+    const last = data[data.length - 1];
+    const age = Date.now() - new Date(last.time).getTime();
+
     if (age > 10000) {
-      showAvailable(device);
+      clearCard(device);
       return;
     }
 
-    showData(device, data);
+    showData(device, last);
 
   } catch {
-    showAvailable(device);
+    clearCard(device);
   }
 }
 
