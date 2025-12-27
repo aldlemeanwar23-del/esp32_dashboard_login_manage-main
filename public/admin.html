@@ -2,191 +2,166 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Admin Dashboard</title>
+<title>Dashboard | ESP32</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-:root {
-  --primary:#0ea5e9;
-  --bg:#020617;
-  --card:rgba(255,255,255,.08);
-  --border:rgba(255,255,255,.15);
-}
 body {
   margin:0;
-  font-family:Segoe UI, Arial;
-  background:linear-gradient(135deg,#020617,#020617,#020617);
-  color:#e5e7eb;
+  background:#0a0f1a;
+  color:#00ffff;
+  font-family:Segoe UI;
 }
-.top-bar {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:18px 30px;
-  background:rgba(2,6,23,.8);
-  border-bottom:1px solid var(--border);
+header {
+  padding:15px;
+  text-align:center;
+  font-size:22px;
+  box-shadow:0 0 15px cyan;
 }
-.top-bar h2 { margin:0; color:var(--primary); }
-.top-bar button {
-  padding:8px 15px;
-  background:var(--primary);
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  color:#fff;
-  font-weight:600;
-}
-.top-bar button:hover { opacity:.85; }
-.container {
+.cards {
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-  gap:20px;
-  padding:30px;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:15px;
+  padding:20px;
 }
-.device-card {
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:22px;
-  backdrop-filter:blur(14px);
-  box-shadow:0 10px 30px rgba(0,0,0,.4);
-  transition:.3s;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
+.card {
+  background:rgba(0,0,0,.6);
+  padding:20px;
+  border-radius:14px;
+  box-shadow:0 0 20px rgba(0,255,255,.3);
 }
-.device-card:hover { transform:translateY(-4px); }
-.device-card h3 { margin:0 0 10px; color:var(--primary); }
-.data { display:flex; justify-content:space-between; margin:5px 0; width:100%; }
-.label { opacity:.7; }
-.value { font-weight:600; }
-.open-btn {
-  margin-top:10px;
-  width:100%;
-  padding:8px;
-  border-radius:8px;
+.value {
+  font-size:40px;
+  text-align:center;
+}
+button {
+  margin:10px;
+  padding:10px 20px;
+  background:#00ffff;
   border:none;
-  background:#22c55e;
-  color:#020617;
-  font-weight:700;
+  border-radius:8px;
   cursor:pointer;
+  font-weight:bold;
 }
-.open-btn:hover { opacity:.85; }
-canvas { height:120px !important; margin-top:10px; width:100% !important; }
+canvas { height:220px !important; }
 </style>
 </head>
+
 <body>
 
-<div class="top-bar">
-  <h2>🩺 Admin Dashboard</h2>
-  <div>
-    <button onclick="location.href='manage.html'">Patients</button>
-    <button onclick="logout()">Logout</button>
+<script>
+if(localStorage.getItem('auth')!=='1') location.href='/login.html';
+</script>
+
+<header>
+⚡ ESP32 Health Dashboard — Sensor <span id="sensorNo"></span><br>
+Patient: <span id="patientName">--</span>
+<button onclick="location.href='manage.html'">Manage Patients</button>
+</header>
+
+<div class="cards">
+  <div class="card">
+    <h3>Heart Rate</h3>
+    <div class="value" id="hr">-- BPM</div>
+  </div>
+  <div class="card">
+    <h3>SpO₂</h3>
+    <div class="value" id="spo">-- %</div>
   </div>
 </div>
 
-<div class="container">
-  <div class="device-card" id="max1"></div>
-  <div class="device-card" id="max2"></div>
-  <div class="device-card" id="max3"></div>
-  <div class="device-card" id="max4"></div>
+<div class="cards">
+  <div class="card">
+    <canvas id="hrChart"></canvas>
+  </div>
+  <div class="card">
+    <canvas id="spoChart"></canvas>
+  </div>
 </div>
 
 <script>
-function logout() {
-  localStorage.removeItem('auth');
-  location.href='/login.html';
+/* =======================
+   Get sensor name from URL
+   ======================= */
+const params = new URLSearchParams(window.location.search);
+let sensorParam = params.get('sensor') || 'max1'; // default: max1
+if (!sensorParam.toLowerCase().startsWith("max")) {
+  const num = parseInt(sensorParam, 10);
+  if (num >= 1 && num <= 4) {
+    sensorParam = "max" + num;
+  }
 }
+sensorParam = sensorParam.toLowerCase(); 
+document.getElementById('sensorNo').innerText = sensorParam;
 
-const devices = ['max1','max2','max3','max4'];
-const charts = {};
-const patientNames = {}; // لتخزين اسم المريض لكل جهاز
-
-// جلب اسم المريض لكل جهاز
-async function loadPatientNames() {
+/* =======================
+   Fetch patient name
+   ======================= */
+async function loadPatientName() {
   try {
     const res = await fetch('/api/infoGet');
     const data = await res.json();
-    data.forEach(p => {
-      patientNames[p.device_id] = p.p_name;
-    });
+    const patient = data.find(p => p.device_id === sensorParam);
+    document.getElementById('patientName').innerText = patient ? patient.p_name : '--';
   } catch(e){
-    console.error('Error fetching patient names:', e);
+    console.error('Error fetching patient name:', e);
   }
 }
 
-// إنشاء بطاقات الأجهزة
-devices.forEach(device => {
-  const card = document.getElementById(device);
-  card.innerHTML = `
-    <h3>${device.toUpperCase()}</h3>
-    <div class="data"><span class="label">Patient:</span> <span class="value" id="${device}-pname">--</span></div>
-    <div class="data"><span class="label">Heart Rate</span> <span class="value" id="${device}-hr">--</span></div>
-    <div class="data"><span class="label">SpO₂</span> <span class="value" id="${device}-spo">--</span></div>
-    <canvas id="${device}-hrChart"></canvas>
-    <canvas id="${device}-spoChart"></canvas>
-    <button class="open-btn" onclick="location.href='device.html?device=${device}'">Open Device</button>
-  `;
-  charts[device] = {
-    hrChart: new Chart(document.getElementById(`${device}-hrChart`), {
-      type:'line',
-      data:{labels:[], datasets:[{label:'HR', data:[], borderColor:'#00ffff', fill:true}]},
-      options:{animation:false,responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
-    }),
-    spoChart: new Chart(document.getElementById(`${device}-spoChart`), {
-      type:'line',
-      data:{labels:[], datasets:[{label:'SpO₂', data:[], borderColor:'#ff00ff', fill:true}]},
-      options:{animation:false,responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
-    })
-  };
+/* =======================
+   Chart setup
+   ======================= */
+let labels = [], hrData = [], spoData = [];
+const hrChart = new Chart(hrChartCtx=document.getElementById('hrChart'), {
+  type:'line',
+  data:{labels,datasets:[{label:'Heart Rate',data:hrData,borderColor:'#00ffff',fill:true}]}
+});
+const spoChart = new Chart(spoChartCtx=document.getElementById('spoChart'), {
+  type:'line',
+  data:{labels,datasets:[{label:'SpO₂',data:spoData,borderColor:'#ff00ff',fill:true}]}
 });
 
-async function loadDevice(device) {
+/* =======================
+   Load data
+   ======================= */
+async function loadData(sensor) {
+  await loadPatientName();
   try {
-    const res = await fetch(`/api/sensor?device=${device}`);
+    const res = await fetch(`/api/sensor?device=${sensor}`);
     const data = await res.json();
-
-    // تحديث اسم المريض
-    document.getElementById(`${device}-pname`).innerText = patientNames[device] || '--';
-
-    if (!data || data.length === 0) {
-      // الجهاز متاح فقط
-      document.getElementById(`${device}-hr`).innerText = '--';
-      document.getElementById(`${device}-spo`).innerText = '--';
-      charts[device].hrChart.data.labels = [];
-      charts[device].hrChart.data.datasets[0].data = [];
-      charts[device].hrChart.update();
-      charts[device].spoChart.data.labels = [];
-      charts[device].spoChart.data.datasets[0].data = [];
-      charts[device].spoChart.update();
+    if (!data || data.error || data.length === 0) {
+      labels.length = hrData.length = spoData.length = 0;
+      hrChart.update();
+      spoChart.update();
+      document.getElementById('hr').innerText = '--';
+      document.getElementById('spo').innerText = '--';
       return;
     }
 
-    const last = data[data.length-1];
-    document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
-    document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
+    labels.length = hrData.length = spoData.length = 0;
+    data.slice(-100).forEach(r=>{
+      labels.push('');
+      hrData.push(r.heartrate);
+      spoData.push(r.spo2);
+    });
 
-    charts[device].hrChart.data.labels = data.map(r => r.time);
-    charts[device].hrChart.data.datasets[0].data = data.map(r => r.heartrate);
-    charts[device].hrChart.update();
+    const last = data[data.length - 1];
+    document.getElementById('hr').innerText = last.heartrate + ' BPM';
+    document.getElementById('spo').innerText = last.spo2 + ' %';
 
-    charts[device].spoChart.data.labels = data.map(r => r.time);
-    charts[device].spoChart.data.datasets[0].data = data.map(r => r.spo2);
-    charts[device].spoChart.update();
-
-  } catch(e){
-    console.error('Error loading device', device, e);
+    hrChart.update();
+    spoChart.update();
+  } catch (e) {
+    console.error('Error loading sensor data:', e);
   }
 }
 
-async function loadAllDevices() {
-  await loadPatientNames();
-  devices.forEach(loadDevice);
-}
-
-loadAllDevices();
-setInterval(loadAllDevices, 2000);
+/* =======================
+   Auto refresh
+   ======================= */
+loadData(sensorParam);
+setInterval(() => loadData(sensorParam), 2000);
 </script>
 
 </body>
