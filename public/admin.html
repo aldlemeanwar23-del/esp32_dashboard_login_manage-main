@@ -9,164 +9,186 @@
 <style>
 body {
   margin:0;
-  font-family:Segoe UI, Arial;
-  background:#020617;
-  color:#e5e7eb;
+  font-family:Segoe UI;
+  background:#0a0f1a;
+  color:#fff;
 }
-.top-bar {
-  padding:20px;
-  border-bottom:1px solid #334155;
+header {
+  padding:15px 25px;
+  background:#001f2f;
+  color:#00ffff;
+  font-size:20px;
 }
-.top-bar h2 { color:#38bdf8; margin:0 }
-
-.container {
+.devices {
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
   gap:20px;
   padding:20px;
 }
-
-.device-card {
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.15);
-  border-radius:16px;
-  padding:20px;
+.card {
+  background:rgba(0,255,255,0.08);
+  border-radius:14px;
+  padding:15px;
+  cursor:pointer;
+  transition:.2s;
 }
-
-.device-card h3 { color:#38bdf8; margin-bottom:10px }
-
-.data {
+.card:hover {
+  transform:scale(1.02);
+}
+.card.disabled {
+  cursor:default;
+  opacity:.6;
+}
+.title {
+  font-size:18px;
+  margin-bottom:10px;
+}
+.values {
   display:flex;
-  justify-content:space-between;
-  margin:6px 0;
+  justify-content:space-around;
+  margin-bottom:10px;
 }
-
+.value {
+  text-align:center;
+}
 .status {
   text-align:center;
-  margin:25px 0;
-  font-size:18px;
-  color:#22d3ee;
+  color:#aaa;
+  font-size:16px;
+  display:none;
 }
-
 canvas {
   width:100%;
-  height:120px !important;
-  background:rgba(0,0,0,.25);
-  border-radius:10px;
-  margin-top:10px;
-}
-
-.open-btn {
-  margin-top:10px;
-  width:100%;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  background:#22c55e;
-  font-weight:bold;
-  cursor:pointer;
+  height:80px !important;
 }
 </style>
 </head>
+
 <body>
 
-<div class="top-bar">
-  <h2>🩺 Admin Dashboard</h2>
-</div>
+<header>Admin Dashboard</header>
 
-<div class="container" id="container"></div>
+<div class="devices" id="devices"></div>
 
 <script>
-const container = document.getElementById('container');
-const devices = ['max1','max2','max3','max4'];
+const DEVICE_LIST = ['max1','max2','max3'];
 const charts = {};
+const TIMEOUT = 10000; // 10 ثواني
 
-devices.forEach(device => {
+const container = document.getElementById('devices');
+
+/* إنشاء البطاقات */
+DEVICE_LIST.forEach(d=>{
   const card = document.createElement('div');
-  card.className = 'device-card';
+  card.className = 'card disabled';
+  card.id = `card-${d}`;
+  card.onclick = ()=>openDevice(d);
+
   card.innerHTML = `
-    <h3>${device.toUpperCase()}</h3>
+    <div class="title">${d.toUpperCase()}</div>
 
-    <div class="data"><span>Heart Rate</span><span id="${device}-hr">--</span></div>
-    <div class="data"><span>SpO₂</span><span id="${device}-spo">--</span></div>
+    <div class="values" id="${d}-values">
+      <div class="value">
+        <div id="${d}-hr">--</div>
+        <small>HR</small>
+      </div>
+      <div class="value">
+        <div id="${d}-spo">--</div>
+        <small>SpO₂</small>
+      </div>
+    </div>
 
-    <div class="status" id="${device}-status">الجهاز متاح</div>
+    <div class="status" id="${d}-status">الجهاز متاح</div>
 
-    <canvas id="${device}-hrChart"></canvas>
-    <canvas id="${device}-spoChart"></canvas>
-
-    <button class="open-btn"
-      onclick="location.href='device.html?device=${device}'">
-      Open Device
-    </button>
+    <canvas id="${d}-hrChart"></canvas>
+    <canvas id="${d}-spoChart"></canvas>
   `;
   container.appendChild(card);
 
-  charts[device] = {
-    hr: new Chart(document.getElementById(`${device}-hrChart`), {
+  charts[d] = {
+    hr:new Chart(document.getElementById(`${d}-hrChart`),{
       type:'line',
       data:{labels:[],datasets:[{data:[],borderColor:'#00ffff'}]},
-      options:{animation:false,maintainAspectRatio:false}
+      options:{animation:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}
     }),
-    spo: new Chart(document.getElementById(`${device}-spoChart`), {
+    spo:new Chart(document.getElementById(`${d}-spoChart`),{
       type:'line',
       data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff'}]},
-      options:{animation:false,maintainAspectRatio:false}
+      options:{animation:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}
     })
   };
 });
 
+/* تحميل بيانات الجهاز */
 async function loadDevice(device){
-  try {
+  try{
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
-    const hr = document.getElementById(`${device}-hr`);
-    const spo = document.getElementById(`${device}-spo`);
-    const status = document.getElementById(`${device}-status`);
-
-    if(!Array.isArray(data) || data.length === 0){
-      hr.innerText = '--';
-      spo.innerText = '--';
-      status.style.display = 'block';
-
-      charts[device].hr.data.labels = [];
-      charts[device].hr.data.datasets[0].data = [];
-      charts[device].hr.update();
-
-      charts[device].spo.data.labels = [];
-      charts[device].spo.data.datasets[0].data = [];
-      charts[device].spo.update();
+    if(!Array.isArray(data) || data.length===0){
+      setAvailable(device);
       return;
     }
 
-    const last = data[data.length - 1];
-    status.style.display = 'none';
+    const last = data[data.length-1];
+    const lastTime = new Date(last.time).getTime();
 
-    hr.innerText = last.heartrate + ' BPM';
-    spo.innerText = last.spo2 + ' %';
+    if(Date.now() - lastTime > TIMEOUT){
+      setAvailable(device);
+      return;
+    }
 
-    const t = new Date(last.time).toLocaleTimeString();
+    setActive(device,last);
 
-    charts[device].hr.data.labels.push(t);
-    charts[device].hr.data.datasets[0].data.push(last.heartrate);
-    charts[device].hr.update();
-
-    charts[device].spo.data.labels.push(t);
-    charts[device].spo.data.datasets[0].data.push(last.spo2);
-    charts[device].spo.update();
-
-  } catch(e){
-    console.error(device, e);
+  }catch{
+    setAvailable(device);
   }
 }
 
-function loadAll(){
-  devices.forEach(loadDevice);
+/* الجهاز متصل */
+function setActive(device,last){
+  document.getElementById(`card-${device}`).classList.remove('disabled');
+  document.getElementById(`${device}-status`).style.display='none';
+  document.getElementById(`${device}-values`).style.display='flex';
+
+  document.getElementById(`${device}-hr`).innerText = last.heartrate;
+  document.getElementById(`${device}-spo`).innerText = last.spo2;
+
+  charts[device].hr.data.labels=[''];
+  charts[device].hr.data.datasets[0].data=[last.heartrate];
+  charts[device].hr.update();
+
+  charts[device].spo.data.labels=[''];
+  charts[device].spo.data.datasets[0].data=[last.spo2];
+  charts[device].spo.update();
 }
 
-loadAll();
-setInterval(loadAll,2000);
+/* الجهاز متاح (فصل) */
+function setAvailable(device){
+  document.getElementById(`card-${device}`).classList.add('disabled');
+
+  document.getElementById(`${device}-values`).style.display='none';
+  document.getElementById(`${device}-status`).style.display='block';
+
+  charts[device].hr.data.labels=[];
+  charts[device].hr.data.datasets[0].data=[];
+  charts[device].hr.update();
+
+  charts[device].spo.data.labels=[];
+  charts[device].spo.data.datasets[0].data=[];
+  charts[device].spo.update();
+}
+
+/* فتح صفحة الجهاز */
+function openDevice(device){
+  const card = document.getElementById(`card-${device}`);
+  if(card.classList.contains('disabled')) return;
+  window.location.href = `device.html?device=${device}`;
+}
+
+/* تحديث دوري */
+DEVICE_LIST.forEach(loadDevice);
+setInterval(()=>DEVICE_LIST.forEach(loadDevice),2000);
 </script>
 
 </body>
