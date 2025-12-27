@@ -5,17 +5,17 @@
 <title>Admin Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
 :root {
   --primary:#0ea5e9;
+  --bg:#020617;
   --card:rgba(255,255,255,.08);
   --border:rgba(255,255,255,.15);
 }
 body {
   margin:0;
   font-family:Segoe UI, Arial;
-  background:#020617;
+  background:linear-gradient(135deg,#020617,#020617,#020617);
   color:#e5e7eb;
 }
 .top-bar {
@@ -36,6 +36,7 @@ body {
   color:#fff;
   font-weight:600;
 }
+.top-bar button:hover { opacity:.85; }
 .container {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
@@ -47,20 +48,29 @@ body {
   border:1px solid var(--border);
   border-radius:16px;
   padding:22px;
+  backdrop-filter:blur(14px);
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+  transition:.3s;
   display:flex;
   flex-direction:column;
+  justify-content:flex-start;
   align-items:center;
-  justify-content:center;
-  min-height:300px;
 }
-.device-card h3 { margin-bottom:15px; color:var(--primary); }
-.data { display:flex; justify-content:space-between; width:80%; margin:5px 0; }
+.device-card:hover { transform:translateY(-4px); }
+.device-card h3 { margin:0 0 15px; color:var(--primary); }
+.data { display:flex; justify-content:space-between; margin:8px 0; width:100%; }
 .label { opacity:.7; }
 .value { font-weight:600; }
-.empty-message { color:#00ffff; font-weight:bold; text-align:center; margin-top:10px; }
+.empty-message {
+  margin:20px 0;
+  font-size:18px;
+  font-weight:bold;
+  color:#00ffff;
+  text-align:center;
+}
 .open-btn {
   margin-top:15px;
-  width:80%;
+  width:100%;
   padding:10px;
   border-radius:10px;
   border:none;
@@ -69,7 +79,8 @@ body {
   font-weight:700;
   cursor:pointer;
 }
-canvas { width:90%; height:150px; margin-top:10px; display:block; }
+.open-btn:hover { opacity:.85; }
+canvas { width:100%; height:150px; margin-top:10px; border-radius:12px; background: rgba(0,0,0,0.2); }
 </style>
 </head>
 <body>
@@ -82,11 +93,8 @@ canvas { width:90%; height:150px; margin-top:10px; display:block; }
   </div>
 </div>
 
-<div class="container">
-  <div class="device-card" id="max1"></div>
-  <div class="device-card" id="max2"></div>
-  <div class="device-card" id="max3"></div>
-  <div class="device-card" id="max4"></div>
+<div class="container" id="deviceContainer">
+  <!-- الأجهزة سيتم إنشاؤها ديناميكياً -->
 </div>
 
 <script>
@@ -98,101 +106,96 @@ function logout() {
 const devices = ['max1','max2','max3','max4'];
 const charts = {};
 
-// إنشاء البطاقات والجارت
-devices.forEach(device => {
-  const card = document.getElementById(device);
+function createDeviceCard(device){
+  const container = document.getElementById('deviceContainer');
+  const card = document.createElement('div');
+  card.className = 'device-card';
+  card.id = device;
+
   card.innerHTML = `
     <h3>${device.toUpperCase()}</h3>
     <div class="data"><span class="label">Heart Rate</span> <span class="value" id="${device}-hr">--</span></div>
     <div class="data"><span class="label">SpO₂</span> <span class="value" id="${device}-spo">--</span></div>
-    <div id="${device}-empty" class="empty-message">الجهاز متاح</div>
+    <div class="empty-message" id="${device}-empty">الجهاز متاح</div>
     <canvas id="${device}-hrChart"></canvas>
     <canvas id="${device}-spoChart"></canvas>
     <button class="open-btn" onclick="location.href='device.html?device=${device}'">Open Device</button>
   `;
 
+  container.appendChild(card);
+
   charts[device] = {
     hrChart: new Chart(document.getElementById(`${device}-hrChart`), {
       type:'line',
-      data:{labels:[], datasets:[{label:'HR', data:[], borderColor:'#00ffff', fill:false}]},
-      options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
+      data:{labels:[],datasets:[{label:'HR',data:[],borderColor:'#00ffff',fill:false}]},
+      options:{animation:false,responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
     }),
     spoChart: new Chart(document.getElementById(`${device}-spoChart`), {
       type:'line',
-      data:{labels:[], datasets:[{label:'SpO₂', data:[], borderColor:'#ff00ff', fill:false}]},
-      options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
+      data:{labels:[],datasets:[{label:'SpO₂',data:[],borderColor:'#ff00ff',fill:false}]},
+      options:{animation:false,responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
     })
   };
-});
+}
 
-async function loadDevice(device) {
-  try {
+devices.forEach(createDeviceCard);
+
+async function loadDevice(device){
+  try{
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
-    const hrVal = document.getElementById(`${device}-hr`);
-    const spoVal = document.getElementById(`${device}-spo`);
-    const emptyMsg = document.getElementById(`${device}-empty`);
+    const hrEl = document.getElementById(`${device}-hr`);
+    const spoEl = document.getElementById(`${device}-spo`);
+    const emptyEl = document.getElementById(`${device}-empty`);
     const hrCanvas = document.getElementById(`${device}-hrChart`);
     const spoCanvas = document.getElementById(`${device}-spoChart`);
 
-    // إذا لا توجد بيانات
-    if (!data || !data.heartrate || !data.spo2) {
-      hrVal.innerText = '--';
-      spoVal.innerText = '--';
-      emptyMsg.style.display = 'block';
-      hrCanvas.style.display = 'none';
-      spoCanvas.style.display = 'none';
-
-      charts[device].hrChart.data.labels = [];
-      charts[device].hrChart.data.datasets[0].data = [];
+    if(!data || !data.heartrate || !data.spo2){
+      hrEl.innerText='--';
+      spoEl.innerText='--';
+      emptyEl.style.display='block';
+      hrCanvas.style.display='none';
+      spoCanvas.style.display='none';
+      charts[device].hrChart.data.labels=[];
+      charts[device].hrChart.data.datasets[0].data=[];
       charts[device].hrChart.update();
-
-      charts[device].spoChart.data.labels = [];
-      charts[device].spoChart.data.datasets[0].data = [];
+      charts[device].spoChart.data.labels=[];
+      charts[device].spoChart.data.datasets[0].data=[];
       charts[device].spoChart.update();
       return;
     }
 
-    // توجد بيانات
-    emptyMsg.style.display = 'none';
-    hrCanvas.style.display = 'block';
-    spoCanvas.style.display = 'block';
-    hrVal.innerText = data.heartrate + ' BPM';
-    spoVal.innerText = data.spo2 + ' %';
+    // بيانات موجودة
+    emptyEl.style.display='none';
+    hrCanvas.style.display='block';
+    spoCanvas.style.display='block';
+    hrEl.innerText = data.heartrate + ' BPM';
+    spoEl.innerText = data.spo2 + ' %';
 
     const timeLabel = new Date(data.time).toLocaleTimeString();
+
     const hrChart = charts[device].hrChart;
     const spoChart = charts[device].spoChart;
 
-    if(hrChart.data.labels.length >= 20){
-      hrChart.data.labels.shift();
-      hrChart.data.datasets[0].data.shift();
-    }
+    if(hrChart.data.labels.length>=20){ hrChart.data.labels.shift(); hrChart.data.datasets[0].data.shift(); }
     hrChart.data.labels.push(timeLabel);
     hrChart.data.datasets[0].data.push(data.heartrate);
     hrChart.update();
 
-    if(spoChart.data.labels.length >= 20){
-      spoChart.data.labels.shift();
-      spoChart.data.datasets[0].data.shift();
-    }
+    if(spoChart.data.labels.length>=20){ spoChart.data.labels.shift(); spoChart.data.datasets[0].data.shift(); }
     spoChart.data.labels.push(timeLabel);
     spoChart.data.datasets[0].data.push(data.spo2);
     spoChart.update();
 
-  } catch(e) {
-    console.error('Error loading device', device, e);
+  } catch(err){
+    console.error('Error loading device', device, err);
   }
 }
 
-function loadAllDevices() {
-  devices.forEach(loadDevice);
-}
-
+function loadAllDevices(){ devices.forEach(loadDevice); }
 loadAllDevices();
-setInterval(loadAllDevices, 2000);
+setInterval(loadAllDevices,2000);
 </script>
-
 </body>
 </html>
