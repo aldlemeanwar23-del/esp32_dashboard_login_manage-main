@@ -2,166 +2,227 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Dashboard | ESP32</title>
+<title>Admin Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+:root {
+  --primary:#0ea5e9;
+  --bg:#020617;
+  --card:rgba(255,255,255,.08);
+  --border:rgba(255,255,255,.15);
+}
 body {
   margin:0;
-  background:#0a0f1a;
-  color:#00ffff;
-  font-family:Segoe UI;
+  font-family:Segoe UI, Arial;
+  background:#020617;
+  color:#e5e7eb;
 }
-header {
-  padding:15px;
-  text-align:center;
-  font-size:22px;
-  box-shadow:0 0 15px cyan;
+.top-bar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:18px 30px;
+  border-bottom:1px solid var(--border);
 }
-.cards {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:15px;
-  padding:20px;
-}
-.card {
-  background:rgba(0,0,0,.6);
-  padding:20px;
-  border-radius:14px;
-  box-shadow:0 0 20px rgba(0,255,255,.3);
-}
-.value {
-  font-size:40px;
-  text-align:center;
-}
-button {
-  margin:10px;
-  padding:10px 20px;
-  background:#00ffff;
+.top-bar h2 { margin:0; color:var(--primary); }
+.top-bar button {
+  padding:8px 16px;
   border:none;
   border-radius:8px;
+  background:var(--primary);
+  color:#fff;
+  font-weight:600;
   cursor:pointer;
-  font-weight:bold;
 }
-canvas { height:220px !important; }
+
+.container {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:20px;
+  padding:30px;
+}
+
+.device-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:20px;
+  min-height:260px;
+  position:relative;
+}
+
+.device-card h3 {
+  margin:0 0 10px;
+  color:var(--primary);
+}
+
+.status {
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  font-weight:700;
+  color:#22c55e;
+}
+
+.content { display:none; }
+
+.data {
+  display:flex;
+  justify-content:space-between;
+  margin:6px 0;
+}
+
+canvas {
+  height:90px !important;
+  margin-top:8px;
+}
+
+.open-btn {
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#22c55e;
+  color:#020617;
+  font-weight:700;
+  cursor:pointer;
+}
 </style>
 </head>
 
 <body>
 
-<script>
-if(localStorage.getItem('auth')!=='1') location.href='/login.html';
-</script>
-
-<header>
-⚡ ESP32 Health Dashboard — Sensor <span id="sensorNo"></span><br>
-Patient: <span id="patientName">--</span>
-<button onclick="location.href='manage.html'">Manage Patients</button>
-</header>
-
-<div class="cards">
-  <div class="card">
-    <h3>Heart Rate</h3>
-    <div class="value" id="hr">-- BPM</div>
-  </div>
-  <div class="card">
-    <h3>SpO₂</h3>
-    <div class="value" id="spo">-- %</div>
+<div class="top-bar">
+  <h2>🩺 Admin Dashboard</h2>
+  <div>
+    <button onclick="location.href='manage.html'">Patients</button>
+    <button onclick="logout()">Logout</button>
   </div>
 </div>
 
-<div class="cards">
-  <div class="card">
-    <canvas id="hrChart"></canvas>
-  </div>
-  <div class="card">
-    <canvas id="spoChart"></canvas>
-  </div>
-</div>
+<div class="container" id="devices"></div>
 
 <script>
-/* =======================
-   Get sensor name from URL
-   ======================= */
-const params = new URLSearchParams(window.location.search);
-let sensorParam = params.get('sensor') || 'max1'; // default: max1
-if (!sensorParam.toLowerCase().startsWith("max")) {
-  const num = parseInt(sensorParam, 10);
-  if (num >= 1 && num <= 4) {
-    sensorParam = "max" + num;
-  }
-}
-sensorParam = sensorParam.toLowerCase(); 
-document.getElementById('sensorNo').innerText = sensorParam;
-
-/* =======================
-   Fetch patient name
-   ======================= */
-async function loadPatientName() {
-  try {
-    const res = await fetch('/api/infoGet');
-    const data = await res.json();
-    const patient = data.find(p => p.device_id === sensorParam);
-    document.getElementById('patientName').innerText = patient ? patient.p_name : '--';
-  } catch(e){
-    console.error('Error fetching patient name:', e);
-  }
+function logout(){
+  localStorage.removeItem('auth');
+  location.href='login.html';
 }
 
-/* =======================
-   Chart setup
-   ======================= */
-let labels = [], hrData = [], spoData = [];
-const hrChart = new Chart(hrChartCtx=document.getElementById('hrChart'), {
-  type:'line',
-  data:{labels,datasets:[{label:'Heart Rate',data:hrData,borderColor:'#00ffff',fill:true}]}
-});
-const spoChart = new Chart(spoChartCtx=document.getElementById('spoChart'), {
-  type:'line',
-  data:{labels,datasets:[{label:'SpO₂',data:spoData,borderColor:'#ff00ff',fill:true}]}
+const devices = ['max1','max2','max3','max4'];
+const charts = {};
+const container = document.getElementById('devices');
+
+devices.forEach(d => {
+  const card = document.createElement('div');
+  card.className = 'device-card';
+  card.id = d;
+
+  card.innerHTML = `
+    <h3>${d.toUpperCase()}</h3>
+
+    <div class="content">
+      <div class="data"><span>Heart Rate</span><b id="${d}-hr">--</b></div>
+      <div class="data"><span>SpO₂</span><b id="${d}-spo">--</b></div>
+      <canvas id="${d}-hrChart"></canvas>
+      <canvas id="${d}-spoChart"></canvas>
+      <button class="open-btn" onclick="location.href='device.html?device=${d}'">Open Device</button>
+    </div>
+
+    <div class="status">الجهاز متاح</div>
+  `;
+  container.appendChild(card);
+
+  charts[d] = {
+    hr: new Chart(document.getElementById(`${d}-hrChart`), {
+      type:'line',
+      data:{labels:[],datasets:[{data:[],borderColor:'#00ffff'}]},
+      options:{responsive:true,animation:false}
+    }),
+    spo: new Chart(document.getElementById(`${d}-spoChart`), {
+      type:'line',
+      data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff'}]},
+      options:{responsive:true,animation:false}
+    })
+  };
 });
 
-/* =======================
-   Load data
-   ======================= */
-async function loadData(sensor) {
-  await loadPatientName();
+function clearCard(device){
+  const card = document.getElementById(device);
+  card.querySelector('.content').style.display = 'none';
+  card.querySelector('.status').style.display = 'flex';
+
+  charts[device].hr.data.labels = [];
+  charts[device].hr.data.datasets[0].data = [];
+  charts[device].spo.data.labels = [];
+  charts[device].spo.data.datasets[0].data = [];
+  charts[device].hr.update();
+  charts[device].spo.update();
+}
+
+function showData(device, row){
+  const card = document.getElementById(device);
+  card.querySelector('.status').style.display = 'none';
+  card.querySelector('.content').style.display = 'block';
+
+  document.getElementById(`${device}-hr`).innerText = row.heartrate;
+  document.getElementById(`${device}-spo`).innerText = row.spo2;
+
+  const hrC = charts[device].hr;
+  const spoC = charts[device].spo;
+
+  hrC.data.labels.push('');
+  hrC.data.datasets[0].data.push(row.heartrate);
+  spoC.data.labels.push('');
+  spoC.data.datasets[0].data.push(row.spo2);
+
+  if (hrC.data.labels.length > 15) {
+    hrC.data.labels.shift();
+    hrC.data.datasets[0].data.shift();
+    spoC.data.labels.shift();
+    spoC.data.datasets[0].data.shift();
+  }
+
+  hrC.update();
+  spoC.update();
+}
+
+async function loadDevice(device){
   try {
-    const res = await fetch(`/api/sensor?device=${sensor}`);
+    const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
-    if (!data || data.error || data.length === 0) {
-      labels.length = hrData.length = spoData.length = 0;
-      hrChart.update();
-      spoChart.update();
-      document.getElementById('hr').innerText = '--';
-      document.getElementById('spo').innerText = '--';
+
+    if (!Array.isArray(data) || data.length === 0) {
+      clearCard(device);
       return;
     }
 
-    labels.length = hrData.length = spoData.length = 0;
-    data.slice(-100).forEach(r=>{
-      labels.push('');
-      hrData.push(r.heartrate);
-      spoData.push(r.spo2);
-    });
-
     const last = data[data.length - 1];
-    document.getElementById('hr').innerText = last.heartrate + ' BPM';
-    document.getElementById('spo').innerText = last.spo2 + ' %';
+    const age = Date.now() - new Date(last.time).getTime();
 
-    hrChart.update();
-    spoChart.update();
-  } catch (e) {
-    console.error('Error loading sensor data:', e);
+    if (age > 10000) {
+      clearCard(device);
+      return;
+    }
+
+    showData(device, last);
+
+  } catch {
+    clearCard(device);
   }
 }
 
-/* =======================
-   Auto refresh
-   ======================= */
-loadData(sensorParam);
-setInterval(() => loadData(sensorParam), 2000);
+function loadAll(){
+  devices.forEach(loadDevice);
+}
+
+loadAll();
+setInterval(loadAll, 2000);
 </script>
 
 </body>
