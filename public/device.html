@@ -5,173 +5,183 @@
 <title>Device Details</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  background:#020617;
-  color:#e5e7eb;
-  font-family:Segoe UI,Arial;
-  height:100vh;
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body, html {
+  width: 100%;
+  height: 100%;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #0a0f1a;
+  color: #fff;
 }
-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:15px 25px;
-  border-bottom:1px solid rgba(255,255,255,.15);
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 25px;
+  background: #001f2f;
+  color: #00ffff;
+  font-size: 20px;
 }
-header span{color:#0ea5e9;font-size:20px;font-weight:700}
-header button{
-  padding:8px 16px;
-  border:none;
-  border-radius:8px;
-  background:#0ea5e9;
-  color:#020617;
-  font-weight:700;
-  cursor:pointer;
+header button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #00ffff;
+  color: #020617;
+  font-weight: bold;
+  cursor: pointer;
 }
-.container{
-  padding:20px;
-  display:flex;
-  flex-direction:column;
-  gap:15px;
+header button:hover { background: #00bcd4; }
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 60px);
+  padding: 15px 20px;
+  gap: 15px;
+  justify-content: flex-start;
+  align-items: center;
 }
-.status{
-  text-align:center;
-  font-size:22px;
-  font-weight:700;
-  color:#22c55e;
-  padding:50px 0;
+
+/* النتائج */
+.results {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  width: 100%;
 }
-.hidden{display:none}
-.results{
-  display:flex;
-  gap:15px;
+.result-card {
+  width: 200px;
+  background: rgba(0, 255, 255, 0.1);
+  padding: 15px;
+  border-radius: 12px;
+  text-align: center;
 }
-.result-card{
-  flex:1;
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.15);
-  border-radius:14px;
-  padding:15px;
-  text-align:center;
+.result-card h3 {
+  font-size: 16px;
+  color: #00ffff;
+  margin-bottom: 10px;
 }
-.result-card h3{color:#0ea5e9;font-size:15px;margin-bottom:8px}
-.result-card .value{font-size:26px;font-weight:700}
-.charts{
-  display:flex;
-  gap:15px;
+.result-card .value {
+  font-size: 28px;
+  font-weight: bold;
 }
-.chart-box{
-  flex:1;
-  height:260px;
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.15);
-  border-radius:14px;
-  padding:10px;
+
+/* الرسوم البيانية */
+canvas {
+  width: 90% !important;
+  max-width: 600px;
+  height: 200px !important;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 5px;
+  margin-top: 15px;
 }
-canvas{width:100%!important;height:100%!important}
-@media(max-width:900px){
-  .results,.charts{flex-direction:column}
+
+.empty-message {
+  font-size: 18px;
+  color: #00ffff;
+  margin: 20px 0;
 }
 </style>
 </head>
-
 <body>
 
 <header>
-  <span>Device: <span id="deviceName"></span></span>
+  <span>Device Details: <span id="deviceName"></span></span>
   <button onclick="location.href='admin.html'">← Back</button>
 </header>
 
 <div class="container">
-
-  <div id="status" class="status">الجهاز متاح</div>
-
-  <div id="content" class="hidden">
-    <div class="results">
-      <div class="result-card">
-        <h3>Heart Rate</h3>
-        <div class="value" id="hr">--</div>
-      </div>
-      <div class="result-card">
-        <h3>SpO₂</h3>
-        <div class="value" id="spo">--</div>
-      </div>
+  <div class="results">
+    <div class="result-card">
+      <h3>Heart Rate</h3>
+      <div class="value" id="hr">-- BPM</div>
     </div>
-
-    <div class="charts">
-      <div class="chart-box"><canvas id="hrChart"></canvas></div>
-      <div class="chart-box"><canvas id="spoChart"></canvas></div>
+    <div class="result-card">
+      <h3>SpO₂</h3>
+      <div class="value" id="spo">-- %</div>
     </div>
   </div>
 
+  <div id="emptyMessage" class="empty-message" style="display:none;">الجهاز متاح</div>
+
+  <canvas id="hrChart"></canvas>
+  <canvas id="spoChart"></canvas>
 </div>
 
 <script>
-const params=new URLSearchParams(location.search);
-const device=params.get('device');
-document.getElementById('deviceName').innerText=device?.toUpperCase()||'';
+const params = new URLSearchParams(window.location.search);
+const device = params.get('device') || 'max1';
+document.getElementById('deviceName').innerText = device.toUpperCase();
 
-const TIMEOUT=7000;
-const MAX_POINTS=30;
+let labels = [], hrData = [], spoData = [];
 
-let hrBuffer=[],spoBuffer=[],labels=[];
-
-const hrChart=new Chart(hrChartEl={
-  getContext:()=>document.getElementById('hrChart').getContext('2d')
-}.getContext(),{
+const hrChart = new Chart(document.getElementById('hrChart'), {
   type:'line',
-  data:{labels:labels,datasets:[{data:hrBuffer,borderColor:'#00ffff',fill:false}]},
-  options:{responsive:true,animation:false}
+  data:{labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', fill:true}]},
+  options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
 });
 
-const spoChart=new Chart(spoChartEl={
-  getContext:()=>document.getElementById('spoChart').getContext('2d')
-}.getContext(),{
+const spoChart = new Chart(document.getElementById('spoChart'), {
   type:'line',
-  data:{labels:labels,datasets:[{data:spoBuffer,borderColor:'#ff00ff',fill:false}]},
-  options:{responsive:true,animation:false}
+  data:{labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', fill:true}]},
+  options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
 });
 
-function setOffline(){
-  document.getElementById('status').classList.remove('hidden');
-  document.getElementById('content').classList.add('hidden');
-  hrBuffer.length=spoBuffer.length=labels.length=0;
-  hrChart.update();spoChart.update();
-}
+async function loadData() {
+  try {
+    const res = await fetch(`/api/sensor?device=${device}`);
+    const data = await res.json();
 
-async function loadData(){
-  try{
-    const res=await fetch(`/api/sensor?device=${device}`);
-    const d=await res.json();
+    const emptyMsg = document.getElementById('emptyMessage');
+    const hrVal = document.getElementById('hr');
+    const spoVal = document.getElementById('spo');
 
-    if(!d || !d.time){setOffline();return;}
+    if (!data || data.length === 0) {
+      hrVal.innerText = '-- BPM';
+      spoVal.innerText = '-- %';
+      emptyMsg.style.display = 'block';
 
-    const t=new Date(d.time).getTime();
-    if(Date.now()-t>TIMEOUT){setOffline();return;}
-
-    document.getElementById('status').classList.add('hidden');
-    document.getElementById('content').classList.remove('hidden');
-
-    document.getElementById('hr').innerText=d.heartrate+' BPM';
-    document.getElementById('spo').innerText=d.spo2+' %';
-
-    hrBuffer.push(d.heartrate);
-    spoBuffer.push(d.spo2);
-    labels.push('');
-
-    if(hrBuffer.length>MAX_POINTS){
-      hrBuffer.shift();spoBuffer.shift();labels.shift();
+      labels.length = hrData.length = spoData.length = 0;
+      hrChart.update();
+      spoChart.update();
+      return;
     }
 
-    hrChart.update();spoChart.update();
-  }catch{setOffline();}
+    emptyMsg.style.display = 'none';
+
+    // ترتيب البيانات حسب timestamp
+    const sortedData = data.sort((a,b) => new Date(a.time) - new Date(b.time));
+
+    // آخر قراءة
+    const last = sortedData[sortedData.length-1];
+    hrVal.innerText = last.heartrate + ' BPM';
+    spoVal.innerText = last.spo2 + ' %';
+
+    // عرض آخر 50 نقطة
+    const recent = sortedData.slice(-50);
+
+    labels.length = hrData.length = spoData.length = 0;
+    recent.forEach(r => {
+      const timeLabel = new Date(r.time).toLocaleTimeString();
+      labels.push(timeLabel);
+      hrData.push(r.heartrate);
+      spoData.push(r.spo2);
+    });
+
+    hrChart.update();
+    spoChart.update();
+
+  } catch(err) {
+    console.error('Error fetching device data:', err);
+  }
 }
 
+// تحميل أول مرة + تحديث كل 2 ثانية
 loadData();
-setInterval(loadData,2000);
+setInterval(loadData, 2000);
 </script>
 
 </body>
