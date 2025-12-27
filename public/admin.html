@@ -196,7 +196,7 @@ function showData(device,row){
   card.querySelector('.status').style.display='none';
   card.querySelector('.content').style.display='flex';
 
- // document.getElementById(`${device}-patient`).innerText = `Patient Name: ${patient.p_name}`;
+  document.getElementById(`${device}-patient`).innerText = `Patient Name: ${patient.p_name}`;
   document.getElementById(`${device}-hr`).innerText=row.heartrate;
   document.getElementById(`${device}-spo`).innerText=row.spo2;
 
