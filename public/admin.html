@@ -16,7 +16,7 @@
 body {
   margin:0;
   font-family:Segoe UI, Arial;
-  background:#020617;
+  background:linear-gradient(135deg,#020617,#020617,#020617);
   color:#e5e7eb;
 }
 .top-bar {
@@ -24,10 +24,20 @@ body {
   justify-content:space-between;
   align-items:center;
   padding:18px 30px;
-  background:rgba(2,6,23,.9);
+  background:rgba(2,6,23,.8);
   border-bottom:1px solid var(--border);
 }
 .top-bar h2 { margin:0; color:var(--primary); }
+.top-bar button {
+  padding:8px 15px;
+  background:var(--primary);
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  color:#fff;
+  font-weight:600;
+}
+.top-bar button:hover { opacity:.85; }
 
 .container {
   display:grid;
@@ -41,24 +51,32 @@ body {
   border:1px solid var(--border);
   border-radius:16px;
   padding:22px;
-  min-height:260px;
-  position:relative;
+  backdrop-filter:blur(14px);
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+  transition:.3s;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  min-height:250px;
 }
+.device-card:hover { transform:translateY(-4px); }
 
-.device-card h3 {
-  margin:0 0 10px;
-  color:var(--primary);
-}
-
-.data { display:flex; justify-content:space-between; margin:6px 0; }
+.device-card h3 { margin:0 0 15px; color:var(--primary); text-align:center; }
+.data { display:flex; justify-content:space-between; width:80%; margin:8px 0; }
 .label { opacity:.7; }
 .value { font-weight:600; }
 
-canvas { height:100px !important; margin-top:8px; }
+.empty-message {
+  margin-top:20px;
+  color:#00ffff;
+  font-weight:bold;
+  text-align:center;
+}
 
 .open-btn {
-  margin-top:10px;
-  width:100%;
+  margin-top:15px;
+  width:80%;
   padding:10px;
   border-radius:10px;
   border:none;
@@ -67,31 +85,19 @@ canvas { height:100px !important; margin-top:8px; }
   font-weight:700;
   cursor:pointer;
 }
+.open-btn:hover { opacity:.85; }
 
-.open-btn:disabled {
-  background:#334155;
-  color:#94a3b8;
-  cursor:not-allowed;
-}
-
-.status {
-  position:absolute;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:20px;
-  font-weight:700;
-  color:#22c55e;
-}
-.hidden { display:none; }
+canvas { width:90% !important; height:120px !important; margin-top:10px; }
 </style>
 </head>
-
 <body>
 
 <div class="top-bar">
   <h2>🩺 Admin Dashboard</h2>
+  <div>
+    <button onclick="location.href='manage.html'">Patients</button>
+    <button onclick="logout()">Logout</button>
+  </div>
 </div>
 
 <div class="container">
@@ -102,103 +108,91 @@ canvas { height:100px !important; margin-top:8px; }
 </div>
 
 <script>
+function logout() {
+  localStorage.removeItem('auth');
+  location.href='/login.html';
+}
+
 const devices = ['max1','max2','max3','max4'];
 const charts = {};
-const TIMEOUT = 7000; // 7 ثواني يعتبر Offline
 
 devices.forEach(device => {
   const card = document.getElementById(device);
   card.innerHTML = `
     <h3>${device.toUpperCase()}</h3>
-
-    <div class="content hidden" id="${device}-content">
-      <div class="data"><span class="label">Heart Rate</span><span class="value" id="${device}-hr"></span></div>
-      <div class="data"><span class="label">SpO₂</span><span class="value" id="${device}-spo"></span></div>
-
-      <canvas id="${device}-hrChart"></canvas>
-      <canvas id="${device}-spoChart"></canvas>
-
-      <button class="open-btn" id="${device}-btn"
-        onclick="location.href='device.html?device=${device}'">
-        Open Device
-      </button>
-    </div>
-
-    <div class="status" id="${device}-status">الجهاز متاح</div>
+    <div class="data"><span class="label">Heart Rate</span> <span class="value" id="${device}-hr">--</span></div>
+    <div class="data"><span class="label">SpO₂</span> <span class="value" id="${device}-spo">--</span></div>
+    <div id="${device}-empty" class="empty-message" style="display:none;">الجهاز متاح</div>
+    <canvas id="${device}-hrChart"></canvas>
+    <canvas id="${device}-spoChart"></canvas>
+    <button class="open-btn" onclick="location.href='device.html?device=${device}'">Open Device</button>
   `;
 
   charts[device] = {
-    hr: new Chart(document.getElementById(`${device}-hrChart`), {
+    hrChart: new Chart(document.getElementById(`${device}-hrChart`), {
       type:'line',
-      data:{labels:[],datasets:[{data:[],borderColor:'#00ffff'}]},
-      options:{responsive:true,animation:false}
+      data:{labels:[],datasets:[{label:'HR',data:[],borderColor:'#00ffff',fill:true}]},
+      options:{animation:false,responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
     }),
-    spo: new Chart(document.getElementById(`${device}-spoChart`), {
+    spoChart: new Chart(document.getElementById(`${device}-spoChart`), {
       type:'line',
-      data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff'}]},
-      options:{responsive:true,animation:false}
+      data:{labels:[],datasets:[{label:'SpO₂',data:[],borderColor:'#ff00ff',fill:true}]},
+      options:{animation:false,responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
     })
   };
 });
-
-function setOffline(device) {
-  document.getElementById(`${device}-content`).classList.add('hidden');
-  document.getElementById(`${device}-status`).classList.remove('hidden');
-  document.getElementById(`${device}-btn`)?.setAttribute('disabled', true);
-
-  charts[device].hr.data.labels = [];
-  charts[device].hr.data.datasets[0].data = [];
-  charts[device].hr.update();
-
-  charts[device].spo.data.labels = [];
-  charts[device].spo.data.datasets[0].data = [];
-  charts[device].spo.update();
-}
 
 async function loadDevice(device) {
   try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
+    const hrVal = document.getElementById(`${device}-hr`);
+    const spoVal = document.getElementById(`${device}-spo`);
+    const emptyMsg = document.getElementById(`${device}-empty`);
+
     if (!data || data.length === 0) {
-      setOffline(device);
+      hrVal.innerText = '--';
+      spoVal.innerText = '--';
+      emptyMsg.style.display = 'block';
+      charts[device].hrChart.data.labels = [];
+      charts[device].hrChart.data.datasets[0].data = [];
+      charts[device].hrChart.update();
+      charts[device].spoChart.data.labels = [];
+      charts[device].spoChart.data.datasets[0].data = [];
+      charts[device].spoChart.update();
       return;
     }
 
-    const last = data[data.length - 1];
-    const lastTime = new Date(last.time).getTime();
+    emptyMsg.style.display = 'none';
 
-    if (Date.now() - lastTime > TIMEOUT) {
-      setOffline(device);
-      return;
-    }
+    // ترتيب البيانات حسب timestamp
+    const sortedData = data.sort((a,b) => new Date(a.time) - new Date(b.time));
 
-    document.getElementById(`${device}-status`).classList.add('hidden');
-    document.getElementById(`${device}-content`).classList.remove('hidden');
-    document.getElementById(`${device}-btn`).removeAttribute('disabled');
+    const last = sortedData[sortedData.length-1];
+    hrVal.innerText = last.heartrate + ' BPM';
+    spoVal.innerText = last.spo2 + ' %';
 
-    document.getElementById(`${device}-hr`).innerText = last.heartrate + ' BPM';
-    document.getElementById(`${device}-spo`).innerText = last.spo2 + ' %';
+    const recent = sortedData.slice(-50);
+    charts[device].hrChart.data.labels = recent.map(r => new Date(r.time).toLocaleTimeString());
+    charts[device].hrChart.data.datasets[0].data = recent.map(r => r.heartrate);
+    charts[device].hrChart.update();
 
-    charts[device].hr.data.labels = data.map(d => '');
-    charts[device].hr.data.datasets[0].data = data.map(d => d.heartrate);
-    charts[device].hr.update();
+    charts[device].spoChart.data.labels = recent.map(r => new Date(r.time).toLocaleTimeString());
+    charts[device].spoChart.data.datasets[0].data = recent.map(r => r.spo2);
+    charts[device].spoChart.update();
 
-    charts[device].spo.data.labels = data.map(d => '');
-    charts[device].spo.data.datasets[0].data = data.map(d => d.spo2);
-    charts[device].spo.update();
-
-  } catch {
-    setOffline(device);
+  } catch(e) {
+    console.error('Error loading device', device, e);
   }
 }
 
-function loadAll() {
+function loadAllDevices() {
   devices.forEach(loadDevice);
 }
 
-loadAll();
-setInterval(loadAll, 2000);
+loadAllDevices();
+setInterval(loadAllDevices, 2000);
 </script>
 
 </body>
