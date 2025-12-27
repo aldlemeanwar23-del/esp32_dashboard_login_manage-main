@@ -58,7 +58,7 @@ body {
   flex-direction:column;
   justify-content:center;
   align-items:center;
-  min-height:250px;
+  min-height:280px;
 }
 .device-card:hover { transform:translateY(-4px); }
 
@@ -122,7 +122,7 @@ devices.forEach(device => {
     <h3>${device.toUpperCase()}</h3>
     <div class="data"><span class="label">Heart Rate</span> <span class="value" id="${device}-hr">--</span></div>
     <div class="data"><span class="label">SpO₂</span> <span class="value" id="${device}-spo">--</span></div>
-    <div id="${device}-empty" class="empty-message" style="display:none;">الجهاز متاح</div>
+    <div id="${device}-empty" class="empty-message">الجهاز متاح</div>
     <canvas id="${device}-hrChart"></canvas>
     <canvas id="${device}-spoChart"></canvas>
     <button class="open-btn" onclick="location.href='device.html?device=${device}'">Open Device</button>
@@ -151,16 +151,21 @@ async function loadDevice(device) {
     const spoVal = document.getElementById(`${device}-spo`);
     const emptyMsg = document.getElementById(`${device}-empty`);
 
-    if (!data || data.length === 0) {
+    // التحقق من وجود بيانات صحيحة
+    if (!data || data.length === 0 || !data[0].heartrate || !data[0].spo2) {
+      // مسح كل القيم السابقة
       hrVal.innerText = '--';
       spoVal.innerText = '--';
       emptyMsg.style.display = 'block';
+
       charts[device].hrChart.data.labels = [];
       charts[device].hrChart.data.datasets[0].data = [];
       charts[device].hrChart.update();
+
       charts[device].spoChart.data.labels = [];
       charts[device].spoChart.data.datasets[0].data = [];
       charts[device].spoChart.update();
+
       return;
     }
 
@@ -168,12 +173,13 @@ async function loadDevice(device) {
 
     // ترتيب البيانات حسب timestamp
     const sortedData = data.sort((a,b) => new Date(a.time) - new Date(b.time));
-
     const last = sortedData[sortedData.length-1];
+
     hrVal.innerText = last.heartrate + ' BPM';
     spoVal.innerText = last.spo2 + ' %';
 
     const recent = sortedData.slice(-50);
+
     charts[device].hrChart.data.labels = recent.map(r => new Date(r.time).toLocaleTimeString());
     charts[device].hrChart.data.datasets[0].data = recent.map(r => r.heartrate);
     charts[device].hrChart.update();
