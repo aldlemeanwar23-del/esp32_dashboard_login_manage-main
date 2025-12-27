@@ -69,7 +69,7 @@ body {
   font-weight:700;
   cursor:pointer;
 }
-canvas { width:90%; height:120px; margin-top:10px; }
+canvas { width:90%; height:150px; margin-top:10px; }
 </style>
 </head>
 <body>
@@ -98,6 +98,7 @@ function logout() {
 const devices = ['max1','max2','max3','max4'];
 const charts = {};
 
+// إنشاء البطاقات والجارت
 devices.forEach(device => {
   const card = document.getElementById(device);
   card.innerHTML = `
@@ -113,22 +114,23 @@ devices.forEach(device => {
   charts[device] = {
     hrChart: new Chart(document.getElementById(`${device}-hrChart`), {
       type:'line',
-      data:{labels:[], datasets:[{label:'HR', data:[], borderColor:'#00ffff', fill:true}]},
+      data:{labels:[], datasets:[{label:'HR', data:[], borderColor:'#00ffff', fill:false}]},
       options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
     }),
     spoChart: new Chart(document.getElementById(`${device}-spoChart`), {
       type:'line',
-      data:{labels:[], datasets:[{label:'SpO₂', data:[], borderColor:'#ff00ff', fill:true}]},
+      data:{labels:[], datasets:[{label:'SpO₂', data:[], borderColor:'#ff00ff', fill:false}]},
       options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
     })
   };
 });
 
+// تحميل البيانات
 async function loadDevice(device) {
   try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
-    
+
     const hrVal = document.getElementById(`${device}-hr`);
     const spoVal = document.getElementById(`${device}-spo`);
     const emptyMsg = document.getElementById(`${device}-empty`);
@@ -150,18 +152,32 @@ async function loadDevice(device) {
     }
 
     emptyMsg.style.display = 'none';
-
     hrVal.innerText = data.heartrate + ' BPM';
     spoVal.innerText = data.spo2 + ' %';
 
-    // تحديث الرسم البياني (نقطة واحدة)
-    charts[device].hrChart.data.labels = [new Date(data.time).toLocaleTimeString()];
-    charts[device].hrChart.data.datasets[0].data = [data.heartrate];
-    charts[device].hrChart.update();
+    // تحديث الجارت مع الاحتفاظ بآخر 20 قراءة
+    const timeLabel = new Date(data.time).toLocaleTimeString();
 
-    charts[device].spoChart.data.labels = [new Date(data.time).toLocaleTimeString()];
-    charts[device].spoChart.data.datasets[0].data = [data.spo2];
-    charts[device].spoChart.update();
+    const hrChart = charts[device].hrChart;
+    const spoChart = charts[device].spoChart;
+
+    // تحديث HR Chart
+    if(hrChart.data.labels.length >= 20){
+      hrChart.data.labels.shift();
+      hrChart.data.datasets[0].data.shift();
+    }
+    hrChart.data.labels.push(timeLabel);
+    hrChart.data.datasets[0].data.push(data.heartrate);
+    hrChart.update();
+
+    // تحديث SpO2 Chart
+    if(spoChart.data.labels.length >= 20){
+      spoChart.data.labels.shift();
+      spoChart.data.datasets[0].data.shift();
+    }
+    spoChart.data.labels.push(timeLabel);
+    spoChart.data.datasets[0].data.push(data.spo2);
+    spoChart.update();
 
   } catch(e) {
     console.error('Error loading device', device, e);
