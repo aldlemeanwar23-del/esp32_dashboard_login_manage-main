@@ -6,83 +6,74 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
 body, html {
-  width: 100%;
-  height: 100%;
+  margin:0; padding:0;
+  width:100%; height:100%;
   font-family: 'Segoe UI', Arial, sans-serif;
-  background: #0a0f1a;
-  color: #fff;
+  background:#0a0f1a;
+  color:#fff;
+  display:flex;
+  flex-direction:column;
 }
 header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 25px;
-  background: #001f2f;
-  color: #00ffff;
-  font-size: 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px 25px;
+  background:#001f2f;
+  color:#00ffff;
+  font-size:20px;
 }
 header button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  background: #00ffff;
-  color: #020617;
-  font-weight: bold;
-  cursor: pointer;
+  padding:8px 16px;
+  border:none;
+  border-radius:6px;
+  background:#00ffff;
+  color:#020617;
+  font-weight:bold;
+  cursor:pointer;
 }
-header button:hover { background: #00bcd4; }
-
+header button:hover { background:#00bcd4; }
 .container {
-  display: flex;
-  flex-direction: column;
-  height: calc(100% - 60px);
-  padding: 15px 20px;
-  gap: 15px;
-  justify-content: flex-start;
-  align-items: center;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  padding:20px;
+  gap:20px;
 }
-
-/* النتائج */
 .results {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  width: 100%;
+  display:flex;
+  gap:20px;
 }
 .result-card {
-  width: 200px;
-  background: rgba(0, 255, 255, 0.1);
-  padding: 15px;
-  border-radius: 12px;
-  text-align: center;
+  background: rgba(0,255,255,0.1);
+  padding:15px 25px;
+  border-radius:12px;
+  text-align:center;
 }
-.result-card h3 {
-  font-size: 16px;
-  color: #00ffff;
-  margin-bottom: 10px;
+.result-card h3 { color:#00ffff; margin-bottom:10px; }
+.result-card .value { font-size:28px; font-weight:bold; }
+.charts {
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+  width:80%;
+  max-width:600px;
 }
-.result-card .value {
-  font-size: 28px;
-  font-weight: bold;
-}
-
-/* الرسوم البيانية */
 canvas {
-  width: 90% !important;
-  max-width: 600px;
-  height: 200px !important;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  padding: 5px;
-  margin-top: 15px;
+  width:100%;
+  height:200px;
+  border-radius:12px;
+  background: rgba(0,0,0,0.2);
 }
-
 .empty-message {
-  font-size: 18px;
-  color: #00ffff;
-  margin: 20px 0;
+  color:#00ffff;
+  font-weight:bold;
+  font-size:20px;
+  text-align:center;
+  margin-top:50px;
 }
 </style>
 </head>
@@ -105,10 +96,12 @@ canvas {
     </div>
   </div>
 
-  <div id="emptyMessage" class="empty-message" style="display:none;">الجهاز متاح</div>
+  <div id="empty" class="empty-message">الجهاز متاح</div>
 
-  <canvas id="hrChart"></canvas>
-  <canvas id="spoChart"></canvas>
+  <div class="charts">
+    <canvas id="hrChart"></canvas>
+    <canvas id="spoChart"></canvas>
+  </div>
 </div>
 
 <script>
@@ -116,72 +109,84 @@ const params = new URLSearchParams(window.location.search);
 const device = params.get('device') || 'max1';
 document.getElementById('deviceName').innerText = device.toUpperCase();
 
-let labels = [], hrData = [], spoData = [];
+const hrEl = document.getElementById('hr');
+const spoEl = document.getElementById('spo');
+const emptyEl = document.getElementById('empty');
+const hrCanvas = document.getElementById('hrChart');
+const spoCanvas = document.getElementById('spoChart');
 
-const hrChart = new Chart(document.getElementById('hrChart'), {
+let labels=[], hrData=[], spoData=[];
+
+const hrChart = new Chart(hrCanvas, {
   type:'line',
-  data:{labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', fill:true}]},
+  data:{labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', fill:false}]},
   options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
 });
 
-const spoChart = new Chart(document.getElementById('spoChart'), {
+const spoChart = new Chart(spoCanvas, {
   type:'line',
-  data:{labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', fill:true}]},
+  data:{labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', fill:false}]},
   options:{responsive:true, animation:false, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
 });
 
-async function loadData() {
+async function loadData(){
   try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
-    const emptyMsg = document.getElementById('emptyMessage');
-    const hrVal = document.getElementById('hr');
-    const spoVal = document.getElementById('spo');
-
-    if (!data || data.length === 0) {
-      hrVal.innerText = '-- BPM';
-      spoVal.innerText = '-- %';
-      emptyMsg.style.display = 'block';
-
-      labels.length = hrData.length = spoData.length = 0;
+    if(!data || !data.heartrate || !data.spo2){
+      hrEl.innerText='--';
+      spoEl.innerText='--';
+      emptyEl.style.display='block';
+      hrCanvas.style.display='none';
+      spoCanvas.style.display='none';
+      hrChart.data.labels=[];
+      hrChart.data.datasets[0].data=[];
       hrChart.update();
+      spoChart.data.labels=[];
+      spoChart.data.datasets[0].data=[];
       spoChart.update();
       return;
     }
 
-    emptyMsg.style.display = 'none';
+    emptyEl.style.display='none';
+    hrCanvas.style.display='block';
+    spoCanvas.style.display='block';
 
-    // ترتيب البيانات حسب timestamp
-    const sortedData = data.sort((a,b) => new Date(a.time) - new Date(b.time));
+    hrEl.innerText = data.heartrate+' BPM';
+    spoEl.innerText = data.spo2+' %';
 
-    // آخر قراءة
-    const last = sortedData[sortedData.length-1];
-    hrVal.innerText = last.heartrate + ' BPM';
-    spoVal.innerText = last.spo2 + ' %';
+    const timeLabel = new Date(data.time).toLocaleTimeString();
 
-    // عرض آخر 50 نقطة
-    const recent = sortedData.slice(-50);
-
-    labels.length = hrData.length = spoData.length = 0;
-    recent.forEach(r => {
-      const timeLabel = new Date(r.time).toLocaleTimeString();
-      labels.push(timeLabel);
-      hrData.push(r.heartrate);
-      spoData.push(r.spo2);
-    });
-
+    if(hrChart.data.labels.length>=20){
+      hrChart.data.labels.shift();
+      hrChart.data.datasets[0].data.shift();
+    }
+    hrChart.data.labels.push(timeLabel);
+    hrChart.data.datasets[0].data.push(data.heartrate);
     hrChart.update();
+
+    if(spoChart.data.labels.length>=20){
+      spoChart.data.labels.shift();
+      spoChart.data.datasets[0].data.shift();
+    }
+    spoChart.data.labels.push(timeLabel);
+    spoChart.data.datasets[0].data.push(data.spo2);
     spoChart.update();
 
-  } catch(err) {
+  } catch(err){
     console.error('Error fetching device data:', err);
+    hrEl.innerText='--';
+    spoEl.innerText='--';
+    emptyEl.style.display='block';
+    hrCanvas.style.display='none';
+    spoCanvas.style.display='none';
   }
 }
 
-// تحميل أول مرة + تحديث كل 2 ثانية
+// أول تحميل + تحديث تلقائي
 loadData();
-setInterval(loadData, 2000);
+setInterval(loadData,2000);
 </script>
 
 </body>
