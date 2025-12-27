@@ -65,6 +65,7 @@ body {
   font-size:18px;
   color:#00ffff;
   margin-bottom:10px;
+  display:none; /* مخفي بشكل افتراضي */
 }
 
 .status {
@@ -145,7 +146,7 @@ async function createCards() {
 
     card.innerHTML=`
       <h3>${d.toUpperCase()}</h3>
-      <div class="patient-name">${patient ? 'Patient Name: '+patient.p_name : ''}</div>
+      <div class="patient-name" id="${d}-patient">${patient ? 'Patient Name: '+patient.p_name : ''}</div>
 
       <div class="content">
         <div class="data"><span>Heart Rate</span><b id="${d}-hr">--</b></div>
@@ -180,6 +181,9 @@ function clearCard(device){
   card.querySelector('.content').style.display='none';
   card.querySelector('.status').style.display='flex';
 
+  const patientDiv = document.getElementById(`${device}-patient`);
+  if(patientDiv) patientDiv.style.display='none'; // إخفاء اسم المريض عند عدم وجود بيانات
+
   charts[device].hr.data.labels=[];
   charts[device].hr.data.datasets[0].data=[];
   charts[device].spo.data.labels=[];
@@ -195,6 +199,9 @@ function showData(device,row){
   const card=document.getElementById(device);
   card.querySelector('.status').style.display='none';
   card.querySelector('.content').style.display='flex';
+
+  const patientDiv = document.getElementById(`${device}-patient`);
+  if(patientDiv) patientDiv.style.display='block'; // إظهار اسم المريض عند وجود بيانات
 
   document.getElementById(`${device}-hr`).innerText=row.heartrate;
   document.getElementById(`${device}-spo`).innerText=row.spo2;
