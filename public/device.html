@@ -7,31 +7,22 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-* { box-sizing:border-box; margin:0; padding:0; }
-
-body {
-  font-family:Segoe UI, Arial;
+*{box-sizing:border-box;margin:0;padding:0}
+body{
   background:#020617;
   color:#e5e7eb;
+  font-family:Segoe UI,Arial;
   height:100vh;
 }
-
-header {
+header{
   display:flex;
   justify-content:space-between;
   align-items:center;
   padding:15px 25px;
-  background:#020617;
   border-bottom:1px solid rgba(255,255,255,.15);
 }
-
-header span {
-  color:#0ea5e9;
-  font-size:20px;
-  font-weight:700;
-}
-
-header button {
+header span{color:#0ea5e9;font-size:20px;font-weight:700}
+header button{
   padding:8px 16px;
   border:none;
   border-radius:8px;
@@ -40,31 +31,25 @@ header button {
   font-weight:700;
   cursor:pointer;
 }
-
-.container {
+.container{
   padding:20px;
   display:flex;
   flex-direction:column;
   gap:15px;
 }
-
-/* ===== Status ===== */
-.status {
+.status{
   text-align:center;
   font-size:22px;
   font-weight:700;
   color:#22c55e;
-  padding:40px 0;
+  padding:50px 0;
 }
-
-.hidden { display:none; }
-
-/* ===== Results ===== */
-.results {
+.hidden{display:none}
+.results{
   display:flex;
   gap:15px;
 }
-.result-card {
+.result-card{
   flex:1;
   background:rgba(255,255,255,.08);
   border:1px solid rgba(255,255,255,.15);
@@ -72,37 +57,23 @@ header button {
   padding:15px;
   text-align:center;
 }
-.result-card h3 {
-  font-size:15px;
-  color:#0ea5e9;
-  margin-bottom:8px;
-}
-.result-card .value {
-  font-size:26px;
-  font-weight:700;
-}
-
-/* ===== Charts ===== */
-.charts {
+.result-card h3{color:#0ea5e9;font-size:15px;margin-bottom:8px}
+.result-card .value{font-size:26px;font-weight:700}
+.charts{
   display:flex;
   gap:15px;
 }
-.chart-box {
+.chart-box{
   flex:1;
+  height:260px;
   background:rgba(255,255,255,.08);
   border:1px solid rgba(255,255,255,.15);
   border-radius:14px;
   padding:10px;
-  height:260px;
 }
-
-canvas {
-  width:100% !important;
-  height:100% !important;
-}
-
-@media(max-width:900px) {
-  .results, .charts { flex-direction:column; }
+canvas{width:100%!important;height:100%!important}
+@media(max-width:900px){
+  .results,.charts{flex-direction:column}
 }
 </style>
 </head>
@@ -116,7 +87,7 @@ canvas {
 
 <div class="container">
 
-  <div class="status" id="status">الجهاز متاح</div>
+  <div id="status" class="status">الجهاز متاح</div>
 
   <div id="content" class="hidden">
     <div class="results">
@@ -139,79 +110,68 @@ canvas {
 </div>
 
 <script>
-const params = new URLSearchParams(window.location.search);
-const device = params.get('device');
-document.getElementById('deviceName').innerText = device?.toUpperCase() || '';
+const params=new URLSearchParams(location.search);
+const device=params.get('device');
+document.getElementById('deviceName').innerText=device?.toUpperCase()||'';
 
-const TIMEOUT = 7000;
+const TIMEOUT=7000;
+const MAX_POINTS=30;
 
-let hrChart = new Chart(document.getElementById('hrChart'), {
+let hrBuffer=[],spoBuffer=[],labels=[];
+
+const hrChart=new Chart(hrChartEl={
+  getContext:()=>document.getElementById('hrChart').getContext('2d')
+}.getContext(),{
   type:'line',
-  data:{ labels:[], datasets:[{ data:[], borderColor:'#00ffff', fill:false }]},
-  options:{ responsive:true, animation:false }
+  data:{labels:labels,datasets:[{data:hrBuffer,borderColor:'#00ffff',fill:false}]},
+  options:{responsive:true,animation:false}
 });
 
-let spoChart = new Chart(document.getElementById('spoChart'), {
+const spoChart=new Chart(spoChartEl={
+  getContext:()=>document.getElementById('spoChart').getContext('2d')
+}.getContext(),{
   type:'line',
-  data:{ labels:[], datasets:[{ data:[], borderColor:'#ff00ff', fill:false }]},
-  options:{ responsive:true, animation:false }
+  data:{labels:labels,datasets:[{data:spoBuffer,borderColor:'#ff00ff',fill:false}]},
+  options:{responsive:true,animation:false}
 });
 
-function setOffline() {
+function setOffline(){
   document.getElementById('status').classList.remove('hidden');
   document.getElementById('content').classList.add('hidden');
-
-  document.getElementById('hr').innerText = '--';
-  document.getElementById('spo').innerText = '--';
-
-  hrChart.data.labels = [];
-  hrChart.data.datasets[0].data = [];
-  hrChart.update();
-
-  spoChart.data.labels = [];
-  spoChart.data.datasets[0].data = [];
-  spoChart.update();
+  hrBuffer.length=spoBuffer.length=labels.length=0;
+  hrChart.update();spoChart.update();
 }
 
-async function loadData() {
-  try {
-    const res = await fetch(`/api/sensor?device=${device}`);
-    const data = await res.json();
+async function loadData(){
+  try{
+    const res=await fetch(`/api/sensor?device=${device}`);
+    const d=await res.json();
 
-    if (!data || data.length === 0) {
-      setOffline();
-      return;
-    }
+    if(!d || !d.time){setOffline();return;}
 
-    const last = data[data.length - 1];
-    const lastTime = new Date(last.time).getTime();
-
-    if (Date.now() - lastTime > TIMEOUT) {
-      setOffline();
-      return;
-    }
+    const t=new Date(d.time).getTime();
+    if(Date.now()-t>TIMEOUT){setOffline();return;}
 
     document.getElementById('status').classList.add('hidden');
     document.getElementById('content').classList.remove('hidden');
 
-    document.getElementById('hr').innerText = last.heartrate + ' BPM';
-    document.getElementById('spo').innerText = last.spo2 + ' %';
+    document.getElementById('hr').innerText=d.heartrate+' BPM';
+    document.getElementById('spo').innerText=d.spo2+' %';
 
-    hrChart.data.labels = data.map(()=>'');
-    hrChart.data.datasets[0].data = data.map(r => r.heartrate);
-    hrChart.update();
+    hrBuffer.push(d.heartrate);
+    spoBuffer.push(d.spo2);
+    labels.push('');
 
-    spoChart.data.labels = data.map(()=>'');
-    spoChart.data.datasets[0].data = data.map(r => r.spo2);
-    spoChart.update();
+    if(hrBuffer.length>MAX_POINTS){
+      hrBuffer.shift();spoBuffer.shift();labels.shift();
+    }
 
-  } catch {
-    setOffline();
-  }
+    hrChart.update();spoChart.update();
+  }catch{setOffline();}
 }
 
 loadData();
-setInterval(loadData, 2000);
+setInterval(loadData,2000);
 </script>
 
 </body>
