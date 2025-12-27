@@ -62,10 +62,9 @@ body {
 }
 
 .patient-name {
-  font-size:16px;
+  font-size:18px;
   color:#00ffff;
   margin-bottom:10px;
-  text-align:center;
 }
 
 .status {
@@ -146,7 +145,7 @@ async function createCards() {
 
     card.innerHTML=`
       <h3>${d.toUpperCase()}</h3>
-      <div class="patient-name" id="${d}-patient"></div>
+      <div class="patient-name">${patient ? patient.p_name : 'No patient'}</div>
 
       <div class="content">
         <div class="data"><span>Heart Rate</span><b id="${d}-hr">--</b></div>
@@ -180,7 +179,6 @@ function clearCard(device){
   const card=document.getElementById(device);
   card.querySelector('.content').style.display='none';
   card.querySelector('.status').style.display='flex';
-  card.querySelector(`#${device}-patient`).innerText='';
 
   charts[device].hr.data.labels=[];
   charts[device].hr.data.datasets[0].data=[];
@@ -193,13 +191,12 @@ function clearCard(device){
   document.getElementById(`${device}-spo`).innerText='--';
 }
 
-function showData(device,row, patientName){
+function showData(device,row){
   const card=document.getElementById(device);
   card.querySelector('.status').style.display='none';
   card.querySelector('.content').style.display='flex';
 
-  document.getElementById(`${device}-patient`).innerText = `Patient Name: ${patientName}`;
-
+  document.getElementById(`${device}-patient`).innerText = `Patient Name: ${patient.p_name}`;
   document.getElementById(`${device}-hr`).innerText=row.heartrate;
   document.getElementById(`${device}-spo`).innerText=row.spo2;
 
@@ -227,22 +224,21 @@ async function loadDevice(device){
     const res=await fetch(`/api/sensor?device=${device}`);
     const data=await res.json();
 
-    const patients = await fetchPatients();
-    const patient = patients.find(p=>p.device_id===device);
-    const patientName = patient ? patient.p_name : '';
-
-    if(!data || !data.time || !patientName){
+    if(!Array.isArray(data) || data.length===0){
       clearCard(device);
       return;
     }
 
-    const age=Date.now()-new Date(data.time).getTime();
-    if(age>10000){ // آخر قراءة أقدم من 10 ثواني
+    const last=data[data.length-1];
+    const age=Date.now()-new Date(last.time).getTime();
+
+    if(age>10000){ // إذا كانت آخر قراءة أقدم من 10 ثواني
       clearCard(device);
       return;
     }
 
-    showData(device,data, patientName);
+    showData(device,last);
+
   } catch {
     clearCard(device);
   }
