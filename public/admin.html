@@ -57,7 +57,7 @@ body {
 .data { display:flex; justify-content:space-between; width:80%; margin:5px 0; }
 .label { opacity:.7; }
 .value { font-weight:600; }
-.empty-message { color:#00ffff; font-weight:bold; margin-top:10px; text-align:center; }
+.empty-message { color:#00ffff; font-weight:bold; text-align:center; margin-top:10px; }
 .open-btn {
   margin-top:15px;
   width:80%;
@@ -69,7 +69,7 @@ body {
   font-weight:700;
   cursor:pointer;
 }
-canvas { width:90%; height:150px; margin-top:10px; }
+canvas { width:90%; height:150px; margin-top:10px; display:block; }
 </style>
 </head>
 <body>
@@ -125,7 +125,6 @@ devices.forEach(device => {
   };
 });
 
-// تحميل البيانات
 async function loadDevice(device) {
   try {
     const res = await fetch(`/api/sensor?device=${device}`);
@@ -134,12 +133,16 @@ async function loadDevice(device) {
     const hrVal = document.getElementById(`${device}-hr`);
     const spoVal = document.getElementById(`${device}-spo`);
     const emptyMsg = document.getElementById(`${device}-empty`);
+    const hrCanvas = document.getElementById(`${device}-hrChart`);
+    const spoCanvas = document.getElementById(`${device}-spoChart`);
 
+    // إذا لا توجد بيانات
     if (!data || !data.heartrate || !data.spo2) {
-      // مسح البيانات
       hrVal.innerText = '--';
       spoVal.innerText = '--';
       emptyMsg.style.display = 'block';
+      hrCanvas.style.display = 'none';
+      spoCanvas.style.display = 'none';
 
       charts[device].hrChart.data.labels = [];
       charts[device].hrChart.data.datasets[0].data = [];
@@ -151,17 +154,17 @@ async function loadDevice(device) {
       return;
     }
 
+    // توجد بيانات
     emptyMsg.style.display = 'none';
+    hrCanvas.style.display = 'block';
+    spoCanvas.style.display = 'block';
     hrVal.innerText = data.heartrate + ' BPM';
     spoVal.innerText = data.spo2 + ' %';
 
-    // تحديث الجارت مع الاحتفاظ بآخر 20 قراءة
     const timeLabel = new Date(data.time).toLocaleTimeString();
-
     const hrChart = charts[device].hrChart;
     const spoChart = charts[device].spoChart;
 
-    // تحديث HR Chart
     if(hrChart.data.labels.length >= 20){
       hrChart.data.labels.shift();
       hrChart.data.datasets[0].data.shift();
@@ -170,7 +173,6 @@ async function loadDevice(device) {
     hrChart.data.datasets[0].data.push(data.heartrate);
     hrChart.update();
 
-    // تحديث SpO2 Chart
     if(spoChart.data.labels.length >= 20){
       spoChart.data.labels.shift();
       spoChart.data.datasets[0].data.shift();
