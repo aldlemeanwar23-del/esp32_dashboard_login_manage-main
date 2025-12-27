@@ -19,6 +19,8 @@ body {
   background:#020617;
   color:#e5e7eb;
 }
+
+/* top bar */
 .top-bar {
   display:flex;
   justify-content:space-between;
@@ -26,54 +28,73 @@ body {
   padding:18px 30px;
   border-bottom:1px solid var(--border);
 }
+.top-bar h2 { margin:0; color:var(--primary); }
+.top-bar button {
+  padding:8px 16px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  background:var(--primary);
+  color:#fff;
+  font-weight:600;
+}
+
+/* layout */
 .container {
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
   gap:20px;
   padding:30px;
 }
+
+/* card */
 .device-card {
   background:var(--card);
   border:1px solid var(--border);
   border-radius:16px;
-  padding:22px;
-  transition:.3s;
+  padding:20px;
+  min-height:260px;
+  position:relative;
 }
-.device-card.disabled {
-  opacity:.6;
-}
+
 .device-card h3 {
   margin:0 0 10px;
   color:var(--primary);
 }
+
+/* status */
+.status {
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  font-weight:700;
+  color:#22c55e;
+}
+
+/* data */
 .data {
   display:flex;
   justify-content:space-between;
-  margin:8px 0;
+  margin:6px 0;
 }
-.status {
-  text-align:center;
-  font-size:18px;
-  margin:30px 0;
-  color:#22c55e;
+canvas {
+  height:90px !important;
+  margin-top:8px;
 }
+
 .open-btn {
   width:100%;
-  margin-top:15px;
+  margin-top:10px;
   padding:10px;
   border:none;
   border-radius:10px;
-  font-weight:700;
-  cursor:pointer;
   background:#22c55e;
   color:#020617;
-}
-.open-btn:disabled {
-  background:#555;
-  cursor:not-allowed;
-}
-canvas {
-  height:120px !important;
+  font-weight:700;
+  cursor:pointer;
 }
 </style>
 </head>
@@ -82,115 +103,123 @@ canvas {
 
 <div class="top-bar">
   <h2>🩺 Admin Dashboard</h2>
+  <div>
+    <button onclick="location.href='manage.html'">Patients</button>
+    <button onclick="logout()">Logout</button>
+  </div>
 </div>
 
 <div class="container" id="devices"></div>
 
 <script>
-const deviceList = ['max1','max2','max3','max4'];
+function logout(){
+  localStorage.removeItem('auth');
+  location.href='login.html';
+}
+
+const devices = ['max1','max2','max3','max4'];
 const charts = {};
 
 const container = document.getElementById('devices');
 
-deviceList.forEach(d => {
-  container.innerHTML += `
-    <div class="device-card disabled" id="card-${d}">
-      <h3>${d.toUpperCase()}</h3>
+devices.forEach(d => {
+  const card = document.createElement('div');
+  card.className = 'device-card';
+  card.id = d;
+  card.innerHTML = `
+    <h3>${d.toUpperCase()}</h3>
 
-      <div id="${d}-status" class="status">الجهاز متاح</div>
-
-      <div id="${d}-values" style="display:none">
-        <div class="data"><span>Heart Rate</span><span id="${d}-hr">--</span></div>
-        <div class="data"><span>SpO₂</span><span id="${d}-spo">--</span></div>
-        <canvas id="${d}-hrChart"></canvas>
-        <canvas id="${d}-spoChart"></canvas>
-      </div>
-
-      <button class="open-btn" id="${d}-btn" disabled
-        onclick="location.href='device.html?device=${d}'">
-        Open Device
-      </button>
+    <div class="content" style="display:none">
+      <div class="data"><span>Heart Rate</span><b id="${d}-hr">--</b></div>
+      <div class="data"><span>SpO₂</span><b id="${d}-spo">--</b></div>
+      <canvas id="${d}-hrChart"></canvas>
+      <canvas id="${d}-spoChart"></canvas>
+      <button class="open-btn" onclick="location.href='device.html?device=${d}'">Open Device</button>
     </div>
+
+    <div class="status">الجهاز متاح</div>
   `;
+  container.appendChild(card);
 
   charts[d] = {
     hr: new Chart(document.getElementById(`${d}-hrChart`), {
       type:'line',
       data:{labels:[],datasets:[{data:[],borderColor:'#00ffff'}]},
-      options:{animation:false,responsive:true}
+      options:{responsive:true,animation:false}
     }),
     spo: new Chart(document.getElementById(`${d}-spoChart`), {
       type:'line',
       data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff'}]},
-      options:{animation:false,responsive:true}
+      options:{responsive:true,animation:false}
     })
   };
 });
 
-function setAvailable(device) {
-  const card = document.getElementById(`card-${device}`);
-  card.classList.add('disabled');
-
-  document.getElementById(`${device}-status`).style.display = 'block';
-  document.getElementById(`${device}-values`).style.display = 'none';
-  document.getElementById(`${device}-btn`).disabled = true;
+function showAvailable(device){
+  const card = document.getElementById(device);
+  card.querySelector('.content').style.display = 'none';
+  card.querySelector('.status').style.display = 'flex';
 
   charts[device].hr.data.labels = [];
   charts[device].hr.data.datasets[0].data = [];
-  charts[device].hr.update();
-
   charts[device].spo.data.labels = [];
   charts[device].spo.data.datasets[0].data = [];
+  charts[device].hr.update();
   charts[device].spo.update();
 }
 
-function setActive(device, data) {
-  const card = document.getElementById(`card-${device}`);
-  card.classList.remove('disabled');
-
-  document.getElementById(`${device}-status`).style.display = 'none';
-  document.getElementById(`${device}-values`).style.display = 'block';
-  document.getElementById(`${device}-btn`).disabled = false;
+function showData(device, data){
+  const card = document.getElementById(device);
+  card.querySelector('.status').style.display = 'none';
+  card.querySelector('.content').style.display = 'block';
 
   document.getElementById(`${device}-hr`).innerText = data.heartrate;
   document.getElementById(`${device}-spo`).innerText = data.spo2;
 
-  charts[device].hr.data.labels = [''];
-  charts[device].hr.data.datasets[0].data = [data.heartrate];
-  charts[device].hr.update();
+  const hrC = charts[device].hr;
+  const spoC = charts[device].spo;
 
-  charts[device].spo.data.labels = [''];
-  charts[device].spo.data.datasets[0].data = [data.spo2];
-  charts[device].spo.update();
+  hrC.data.labels.push('');
+  hrC.data.datasets[0].data.push(data.heartrate);
+  spoC.data.labels.push('');
+  spoC.data.datasets[0].data.push(data.spo2);
+
+  if (hrC.data.labels.length > 15) {
+    hrC.data.labels.shift();
+    hrC.data.datasets[0].data.shift();
+    spoC.data.labels.shift();
+    spoC.data.datasets[0].data.shift();
+  }
+
+  hrC.update();
+  spoC.update();
 }
 
-async function loadDevice(device) {
+async function loadDevice(device){
   try {
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
 
     if (!data || !data.time) {
-      setAvailable(device);
+      showAvailable(device);
       return;
     }
 
-    const lastTime = new Date(data.time).getTime();
-    const now = Date.now();
-
-    if (now - lastTime > 10000) {
-      setAvailable(device);
+    const age = Date.now() - new Date(data.time).getTime();
+    if (age > 10000) {
+      showAvailable(device);
       return;
     }
 
-    setActive(device, data);
+    showData(device, data);
 
   } catch {
-    setAvailable(device);
+    showAvailable(device);
   }
 }
 
-function loadAll() {
-  deviceList.forEach(loadDevice);
+function loadAll(){
+  devices.forEach(loadDevice);
 }
 
 loadAll();
