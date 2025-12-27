@@ -5,6 +5,7 @@
 <title>Admin Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 :root {
   --primary:#0ea5e9;
@@ -12,23 +13,94 @@
   --card:rgba(255,255,255,.08);
   --border:rgba(255,255,255,.15);
 }
-body { margin:0; font-family:Segoe UI, Arial; background:#020617; color:#e5e7eb; }
-.top-bar { display:flex; justify-content:space-between; align-items:center; padding:18px 30px; border-bottom:1px solid var(--border); }
+body {
+  margin:0;
+  font-family:Segoe UI, Arial;
+  background:var(--bg);
+  color:#e5e7eb;
+}
+.top-bar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:18px 30px;
+  border-bottom:1px solid var(--border);
+}
 .top-bar h2 { margin:0; color:var(--primary); }
-.top-bar button { padding:8px 16px; border:none; border-radius:8px; background:var(--primary); color:#fff; font-weight:600; cursor:pointer; }
+.top-bar button {
+  padding:8px 16px;
+  border:none;
+  border-radius:8px;
+  background:var(--primary);
+  color:#fff;
+  font-weight:600;
+  cursor:pointer;
+}
 
-.container { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; padding:30px; }
+.container {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:20px;
+  padding:30px;
+}
 
-.device-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; min-height:280px; position:relative; }
-.device-card h3 { margin:0 0 10px; color:var(--primary); }
-.patient-name { font-size:18px; font-weight:bold; color:#22c55e; margin-bottom:10px; text-align:center; }
-.status { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; color:#22c55e; }
-.content { display:none; }
-.data { display:flex; justify-content:space-between; margin:6px 0; }
-canvas { height:90px !important; margin-top:8px; }
-.open-btn { width:100%; margin-top:10px; padding:10px; border:none; border-radius:10px; background:#22c55e; color:#020617; font-weight:700; cursor:pointer; }
+.device-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:20px;
+  min-height:300px;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+}
+
+.device-card h3 {
+  margin:0 0 8px;
+  color:var(--primary);
+  font-size:20px;
+}
+
+.patient-name {
+  font-size:18px;
+  color:#00ffff;
+  margin-bottom:10px;
+}
+
+.status {
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  font-weight:700;
+  color:#22c55e;
+}
+
+.content { display:none; flex-direction:column; flex:1; }
+
+.data {
+  display:flex;
+  justify-content:space-between;
+  margin:6px 0;
+}
+
+canvas { height:80px !important; margin-top:8px; }
+
+.open-btn {
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#22c55e;
+  color:#020617;
+  font-weight:700;
+  cursor:pointer;
+}
 </style>
 </head>
+
 <body>
 
 <div class="top-bar">
@@ -42,55 +114,88 @@ canvas { height:90px !important; margin-top:8px; }
 <div class="container" id="devices"></div>
 
 <script>
-function logout(){ localStorage.removeItem('auth'); location.href='login.html'; }
+function logout(){
+  localStorage.removeItem('auth');
+  location.href='login.html';
+}
 
 const devices = ['max1','max2','max3','max4'];
 const charts = {};
 const container = document.getElementById('devices');
 
-devices.forEach(d=>{
-  const card = document.createElement('div');
-  card.className='device-card';
-  card.id=d;
+async function fetchPatients() {
+  try {
+    const res = await fetch('/api/infoGet');
+    const data = await res.json();
+    return data; // [{device_id:"max1",p_name:"Ahmed"}, ...]
+  } catch {
+    return [];
+  }
+}
 
-  card.innerHTML=`
-    <h3>${d.toUpperCase()}</h3>
-    <div class="patient-name" id="${d}-patient"></div>
-    <div class="content">
-      <div class="data"><span>Heart Rate</span><b id="${d}-hr">--</b></div>
-      <div class="data"><span>SpO₂</span><b id="${d}-spo">--</b></div>
-      <canvas id="${d}-hrChart"></canvas>
-      <canvas id="${d}-spoChart"></canvas>
-      <button class="open-btn" onclick="location.href='device.html?device=${d}'">Open Device</button>
-    </div>
-    <div class="status">الجهاز متاح</div>
-  `;
-  container.appendChild(card);
+async function createCards() {
+  const patients = await fetchPatients();
 
-  charts[d]={ 
-    hr:new Chart(document.getElementById(`${d}-hrChart`), { type:'line', data:{labels:[],datasets:[{data:[],borderColor:'#00ffff'}]}, options:{responsive:true,animation:false} }),
-    spo:new Chart(document.getElementById(`${d}-spoChart`), { type:'line', data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff'}]}, options:{responsive:true,animation:false} })
-  };
-});
+  devices.forEach(d => {
+    const patient = patients.find(p=>p.device_id===d);
+
+    const card = document.createElement('div');
+    card.className='device-card';
+    card.id=d;
+
+    card.innerHTML=`
+      <h3>${d.toUpperCase()}</h3>
+      <div class="patient-name">${patient ? patient.p_name : 'No patient'}</div>
+
+      <div class="content">
+        <div class="data"><span>Heart Rate</span><b id="${d}-hr">--</b></div>
+        <div class="data"><span>SpO₂</span><b id="${d}-spo">--</b></div>
+        <canvas id="${d}-hrChart"></canvas>
+        <canvas id="${d}-spoChart"></canvas>
+        <button class="open-btn" onclick="location.href='device.html?device=${d}'">Open Device</button>
+      </div>
+
+      <div class="status">الجهاز متاح</div>
+    `;
+
+    container.appendChild(card);
+
+    charts[d] = {
+      hr: new Chart(document.getElementById(`${d}-hrChart`), {
+        type:'line',
+        data:{labels:[], datasets:[{data:[], borderColor:'#00ffff'}]},
+        options:{responsive:true, animation:false}
+      }),
+      spo: new Chart(document.getElementById(`${d}-spoChart`), {
+        type:'line',
+        data:{labels:[], datasets:[{data:[], borderColor:'#ff00ff'}]},
+        options:{responsive:true, animation:false}
+      })
+    };
+  });
+}
 
 function clearCard(device){
   const card=document.getElementById(device);
   card.querySelector('.content').style.display='none';
   card.querySelector('.status').style.display='flex';
-  card.querySelector(`#${device}-patient`).innerText='';
+
   charts[device].hr.data.labels=[];
   charts[device].hr.data.datasets[0].data=[];
   charts[device].spo.data.labels=[];
   charts[device].spo.data.datasets[0].data=[];
   charts[device].hr.update();
   charts[device].spo.update();
+
+  document.getElementById(`${device}-hr`).innerText='--';
+  document.getElementById(`${device}-spo`).innerText='--';
 }
 
 function showData(device,row){
   const card=document.getElementById(device);
   card.querySelector('.status').style.display='none';
-  card.querySelector('.content').style.display='block';
-  card.querySelector(`#${device}-patient`).innerText="Patient Name: "+(row.patientName || '--');
+  card.querySelector('.content').style.display='flex';
+
   document.getElementById(`${device}-hr`).innerText=row.heartrate;
   document.getElementById(`${device}-spo`).innerText=row.spo2;
 
@@ -108,33 +213,46 @@ function showData(device,row){
     spoC.data.labels.shift();
     spoC.data.datasets[0].data.shift();
   }
+
   hrC.update();
   spoC.update();
 }
 
 async function loadDevice(device){
-  try{
+  try {
     const res=await fetch(`/api/sensor?device=${device}`);
     const data=await res.json();
 
-    if(!data || !data.time){
+    if(!Array.isArray(data) || data.length===0){
       clearCard(device);
       return;
     }
 
-    const age=Date.now() - new Date(data.time).getTime();
-    if(age>10000){ clearCard(device); return; }
+    const last=data[data.length-1];
+    const age=Date.now()-new Date(last.time).getTime();
 
-    showData(device,data);
-  }catch{
+    if(age>10000){ // إذا كانت آخر قراءة أقدم من 10 ثواني
+      clearCard(device);
+      return;
+    }
+
+    showData(device,last);
+
+  } catch {
     clearCard(device);
   }
 }
 
-function loadAll(){ devices.forEach(loadDevice); }
+async function loadAll(){
+  for(const d of devices){
+    await loadDevice(d);
+  }
+}
 
-loadAll();
-setInterval(loadAll,2000);
+createCards().then(()=> {
+  loadAll();
+  setInterval(loadAll,2000);
+});
 </script>
 
 </body>
