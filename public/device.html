@@ -7,81 +7,73 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-* { box-sizing:border-box; margin:0; padding:0; }
-
-body {
-  background:#020617;
-  color:#e5e7eb;
-  font-family:Segoe UI, Arial;
-  height:100vh;
+*{box-sizing:border-box;margin:0;padding:0}
+body,html{
+  width:100%;height:100%;
+  font-family:Segoe UI,Arial;
+  background:#0a0f1a;
+  color:#fff;
 }
-
-header {
+header{
   display:flex;
   justify-content:space-between;
   align-items:center;
   padding:15px 25px;
-  border-bottom:1px solid rgba(255,255,255,.15);
+  background:#001f2f;
+  color:#00ffff;
 }
-
-header span { color:#0ea5e9; font-size:20px; }
-
-header button {
+header button{
   padding:8px 16px;
   border:none;
-  border-radius:8px;
-  background:#0ea5e9;
-  color:#fff;
-  font-weight:600;
+  border-radius:6px;
+  background:#00ffff;
+  font-weight:bold;
   cursor:pointer;
 }
 
-.container {
-  padding:20px;
+.container{
   display:flex;
   flex-direction:column;
-  gap:20px;
+  height:calc(100% - 60px);
+  padding:15px;
+  gap:15px;
 }
 
-/* status */
-.status {
-  text-align:center;
-  font-size:20px;
-  color:#22c55e;
-  margin-top:40px;
-}
-
-/* results */
-.results {
+/* النتائج */
+.results{
   display:flex;
-  gap:20px;
+  gap:15px;
 }
-.card {
+.card{
   flex:1;
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.15);
-  border-radius:14px;
-  padding:20px;
+  background:rgba(0,255,255,.1);
+  padding:15px;
+  border-radius:12px;
   text-align:center;
 }
-.card h3 { color:#0ea5e9; margin-bottom:10px; }
-.card .value { font-size:32px; font-weight:700; }
+.card h3{color:#00ffff;margin-bottom:8px}
+.value{font-size:28px;font-weight:bold}
 
-/* charts */
-.charts {
+/* الحالة */
+.status{
+  text-align:center;
+  font-size:22px;
+  font-weight:bold;
+  color:#22c55e;
+  display:none;
+}
+
+/* Charts */
+.charts{
   display:flex;
-  flex-direction:column;
-  gap:20px;
+  gap:15px;
 }
-.chart-box {
-  background:rgba(255,255,255,.05);
-  border-radius:14px;
-  padding:10px;
-  height:200px;
-}
-canvas {
-  width:100% !important;
-  height:100% !important;
+canvas{
+  flex:1;
+  height:180px;
+  background:rgba(0,0,0,.3);
+  border-radius:12px;
+  padding:5px;
 }
 </style>
 </head>
@@ -89,121 +81,100 @@ canvas {
 <body>
 
 <header>
-  <span id="deviceTitle"></span>
+  <span>Device: <b id="deviceName"></b></span>
   <button onclick="location.href='admin.html'">← Back</button>
 </header>
 
 <div class="container">
 
-  <div id="status" class="status">الجهاز متاح</div>
+  <div class="status" id="status">الجهاز متاح</div>
 
-  <div id="content" style="display:none">
-
-    <div class="results">
-      <div class="card">
-        <h3>Heart Rate</h3>
-        <div class="value" id="hr">--</div>
-      </div>
-      <div class="card">
-        <h3>SpO₂</h3>
-        <div class="value" id="spo">--</div>
-      </div>
+  <div class="results" id="results">
+    <div class="card">
+      <h3>Heart Rate</h3>
+      <div class="value" id="hr">--</div>
     </div>
-
-    <div class="charts">
-      <div class="chart-box">
-        <canvas id="hrChart"></canvas>
-      </div>
-      <div class="chart-box">
-        <canvas id="spoChart"></canvas>
-      </div>
+    <div class="card">
+      <h3>SpO₂</h3>
+      <div class="value" id="spo">--</div>
     </div>
+  </div>
 
+  <div class="charts">
+    <canvas id="hrChart"></canvas>
+    <canvas id="spoChart"></canvas>
   </div>
 </div>
 
 <script>
-const params = new URLSearchParams(location.search);
-const device = params.get('device') || 'max1';
-document.getElementById('deviceTitle').innerText = `Device: ${device.toUpperCase()}`;
+const device = new URLSearchParams(location.search).get('device') || 'max1';
+document.getElementById('deviceName').innerText = device.toUpperCase();
 
-const statusEl = document.getElementById('status');
-const contentEl = document.getElementById('content');
+const labels=[], hrData=[], spoData=[];
 
-let hrData = [];
-let spoData = [];
-let labels = [];
-
-const hrChart = new Chart(document.getElementById('hrChart'), {
+const hrChart = new Chart(hrChartElem(), {
   type:'line',
-  data:{labels,datasets:[{label:'HR',data:hrData,borderColor:'#00ffff'}]},
-  options:{responsive:true,maintainAspectRatio:false,animation:false}
+  data:{labels,datasets:[{data:hrData,borderColor:'#00ffff'}]},
+  options:{responsive:true,animation:false}
+});
+const spoChart = new Chart(spoChartElem(), {
+  type:'line',
+  data:{labels,datasets:[{data:spoData,borderColor:'#ff00ff'}]},
+  options:{responsive:true,animation:false}
 });
 
-const spoChart = new Chart(document.getElementById('spoChart'), {
-  type:'line',
-  data:{labels,datasets:[{label:'SpO₂',data:spoData,borderColor:'#ff00ff'}]},
-  options:{responsive:true,maintainAspectRatio:false,animation:false}
-});
+function hrChartElem(){return document.getElementById('hrChart')}
+function spoChartElem(){return document.getElementById('spoChart')}
 
-function showAvailable() {
-  statusEl.style.display = 'block';
-  contentEl.style.display = 'none';
-
-  hrData.length = 0;
-  spoData.length = 0;
-  labels.length = 0;
-
-  hrChart.update();
-  spoChart.update();
+function clearUI(){
+  document.getElementById('status').style.display='block';
+  document.getElementById('results').style.display='none';
+  labels.length=hrData.length=spoData.length=0;
+  hrChart.update(); spoChart.update();
 }
 
-function showData(data) {
-  statusEl.style.display = 'none';
-  contentEl.style.display = 'block';
+function showUI(row){
+  document.getElementById('status').style.display='none';
+  document.getElementById('results').style.display='flex';
 
-  document.getElementById('hr').innerText = data.heartrate;
-  document.getElementById('spo').innerText = data.spo2;
+  document.getElementById('hr').innerText=row.heartrate;
+  document.getElementById('spo').innerText=row.spo2;
 
   labels.push('');
-  hrData.push(data.heartrate);
-  spoData.push(data.spo2);
+  hrData.push(row.heartrate);
+  spoData.push(row.spo2);
 
-  if (labels.length > 20) {
-    labels.shift();
-    hrData.shift();
-    spoData.shift();
+  if(labels.length>20){
+    labels.shift(); hrData.shift(); spoData.shift();
   }
-
-  hrChart.update();
-  spoChart.update();
+  hrChart.update(); spoChart.update();
 }
 
-async function loadData() {
-  try {
-    const res = await fetch(`/api/sensor?device=${device}`);
-    const data = await res.json();
+async function loadData(){
+  try{
+    const res=await fetch(`/api/sensor?device=${device}`);
+    const data=await res.json();
 
-    if (!data || !data.time) {
-      showAvailable();
-      return;
+    if(!Array.isArray(data)||data.length===0){
+      clearUI(); return;
     }
 
-    const last = new Date(data.time).getTime();
-    if (Date.now() - last > 10000) {
-      showAvailable();
-      return;
+    const last=data[data.length-1];
+    const age=Date.now()-new Date(last.time).getTime();
+
+    if(age>10000){
+      clearUI(); return;
     }
 
-    showData(data);
+    showUI(last);
 
-  } catch {
-    showAvailable();
+  }catch{
+    clearUI();
   }
 }
 
 loadData();
-setInterval(loadData, 2000);
+setInterval(loadData,2000);
 </script>
 
 </body>
