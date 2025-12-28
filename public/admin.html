@@ -55,17 +55,23 @@ body {
   flex-direction:column;
 }
 
+/* ⭐ تمييز الجهاز المتصل */
+.device-card.connected {
+  border-color:#22c55e;
+  box-shadow:0 0 18px rgba(34,197,94,.45);
+}
+
 .device-card h3 {
-  margin:0 0 8px;
+  margin:0 0 6px;
   color:var(--primary);
   font-size:20px;
 }
 
 .patient-name {
-  font-size:18px;
+  display:none;
+  font-size:16px;
   color:#00ffff;
   margin-bottom:10px;
-  display:none; /* مخفي بشكل افتراضي */
 }
 
 .status {
@@ -78,7 +84,11 @@ body {
   color:#22c55e;
 }
 
-.content { display:none; flex-direction:column; flex:1; }
+.content {
+  display:none;
+  flex-direction:column;
+  flex:1;
+}
 
 .data {
   display:flex;
@@ -86,7 +96,10 @@ body {
   margin:6px 0;
 }
 
-canvas { height:80px !important; margin-top:8px; }
+canvas {
+  height:80px !important;
+  margin-top:8px;
+}
 
 .open-btn {
   width:100%;
@@ -124,21 +137,26 @@ const devices = ['max1','max2','max3','max4'];
 const charts = {};
 const container = document.getElementById('devices');
 
-async function fetchPatients() {
-  try {
+/* =======================
+   Fetch Patients Table
+   ======================= */
+async function fetchPatients(){
+  try{
     const res = await fetch('/api/infoGet');
-    const data = await res.json();
-    return data; // [{device_id:"max1",p_name:"Ahmed"}, ...]
-  } catch {
+    return await res.json(); // [{device_id,p_name}]
+  }catch{
     return [];
   }
 }
 
-async function createCards() {
+/* =======================
+   Create Cards
+   ======================= */
+async function createCards(){
   const patients = await fetchPatients();
 
-  devices.forEach(d => {
-    const patient = patients.find(p=>p.device_id===d);
+  devices.forEach(d=>{
+    const p = patients.find(x=>x.device_id===d);
 
     const card = document.createElement('div');
     card.className='device-card';
@@ -146,43 +164,50 @@ async function createCards() {
 
     card.innerHTML=`
       <h3>${d.toUpperCase()}</h3>
-      <div class="patient-name" id="${d}-patient">${patient ? 'Patient Name: '+patient.p_name : ''}</div>
+      <div class="patient-name" id="${d}-patient">
+        Patient Name: ${p ? p.p_name : ''}
+      </div>
 
       <div class="content">
         <div class="data"><span>Heart Rate</span><b id="${d}-hr">--</b></div>
         <div class="data"><span>SpO₂</span><b id="${d}-spo">--</b></div>
         <canvas id="${d}-hrChart"></canvas>
         <canvas id="${d}-spoChart"></canvas>
-        <button class="open-btn" onclick="location.href='device.html?device=${d}'">Open Device</button>
+        <button class="open-btn"
+          onclick="location.href='device.html?device=${d}'">
+          Open Device
+        </button>
       </div>
 
       <div class="status">الجهاز متاح</div>
     `;
-
     container.appendChild(card);
 
-    charts[d] = {
-      hr: new Chart(document.getElementById(`${d}-hrChart`), {
+    charts[d]={
+      hr:new Chart(document.getElementById(`${d}-hrChart`),{
         type:'line',
-        data:{labels:[], datasets:[{data:[], borderColor:'#00ffff'}]},
-        options:{responsive:true, animation:false}
+        data:{labels:[],datasets:[{data:[],borderColor:'#00ffff'}]},
+        options:{responsive:true,animation:false}
       }),
-      spo: new Chart(document.getElementById(`${d}-spoChart`), {
+      spo:new Chart(document.getElementById(`${d}-spoChart`),{
         type:'line',
-        data:{labels:[], datasets:[{data:[], borderColor:'#ff00ff'}]},
-        options:{responsive:true, animation:false}
+        data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff'}]},
+        options:{responsive:true,animation:false}
       })
     };
   });
 }
 
+/* =======================
+   Clear Card (Offline)
+   ======================= */
 function clearCard(device){
   const card=document.getElementById(device);
+  card.classList.remove('connected');
+
   card.querySelector('.content').style.display='none';
   card.querySelector('.status').style.display='flex';
-
-  const patientDiv = document.getElementById(`${device}-patient`);
-  if(patientDiv) patientDiv.style.display='none'; // إخفاء اسم المريض عند عدم وجود بيانات
+  document.getElementById(`${device}-patient`).style.display='none';
 
   charts[device].hr.data.labels=[];
   charts[device].hr.data.datasets[0].data=[];
@@ -195,13 +220,16 @@ function clearCard(device){
   document.getElementById(`${device}-spo`).innerText='--';
 }
 
+/* =======================
+   Show Data (Online)
+   ======================= */
 function showData(device,row){
   const card=document.getElementById(device);
+  card.classList.add('connected');
+
   card.querySelector('.status').style.display='none';
   card.querySelector('.content').style.display='flex';
-
-  const patientDiv = document.getElementById(`${device}-patient`);
-  if(patientDiv) patientDiv.style.display='block'; // إظهار اسم المريض عند وجود بيانات
+  document.getElementById(`${device}-patient`).style.display='block';
 
   document.getElementById(`${device}-hr`).innerText=row.heartrate;
   document.getElementById(`${device}-spo`).innerText=row.spo2;
@@ -225,12 +253,15 @@ function showData(device,row){
   spoC.update();
 }
 
+/* =======================
+   Load Device
+   ======================= */
 async function loadDevice(device){
-  try {
+  try{
     const res=await fetch(`/api/sensor?device=${device}`);
     const data=await res.json();
 
-    if(!Array.isArray(data) || data.length===0){
+    if(!Array.isArray(data)||data.length===0){
       clearCard(device);
       return;
     }
@@ -238,25 +269,26 @@ async function loadDevice(device){
     const last=data[data.length-1];
     const age=Date.now()-new Date(last.time).getTime();
 
-    if(age>10000){ // إذا كانت آخر قراءة أقدم من 10 ثواني
+    if(age>10000){
       clearCard(device);
       return;
     }
 
     showData(device,last);
 
-  } catch {
+  }catch{
     clearCard(device);
   }
 }
 
-async function loadAll(){
-  for(const d of devices){
-    await loadDevice(d);
-  }
+function loadAll(){
+  devices.forEach(loadDevice);
 }
 
-createCards().then(()=> {
+/* =======================
+   Init
+   ======================= */
+createCards().then(()=>{
   loadAll();
   setInterval(loadAll,2000);
 });
