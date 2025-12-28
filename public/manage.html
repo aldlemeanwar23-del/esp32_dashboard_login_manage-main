@@ -73,6 +73,7 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
   <input id="chout" placeholder="CheckOut Date" type="date">
   <button onclick="addPatient()">Add</button>
   <button onclick="editPatient()"> Edit </button>
+  <button onclick="TransferToArchive()"> Save To Archive </button>
 </div>
 
 <table>
@@ -185,7 +186,36 @@ async function deletePatient(id){
     console.error('Delete patient error:', err);
   }
 }
+async function TransferToArchive(){
+ const body = {
+    device_id: document.getElementById('device_id').value,
+    pname: document.getElementById('pname').value,
+    pmobile: document.getElementById('pmobile').value,
+    email:document.getElementById('email').value,
+    age: Number(document.getElementById('age').value),
+    chin:(document.getElementById('chin').value),
+    chout:(document.getElementById('chout').value)
+    
+  };
 
+  if(!body.device_id || !body.pname) {
+    alert('Device ID and Patient Name are required!');
+    return;
+  }
+
+  try {
+    await fetch('/api/update', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    clearForm();
+    loadPatients();
+  } catch(err){
+    console.error('Add patient error:', err);
+  }
+  
+}
 function clearForm(){
   document.getElementById('device_id').value = '';
   document.getElementById('pname').value = '';
