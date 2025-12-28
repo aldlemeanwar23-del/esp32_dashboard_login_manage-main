@@ -104,9 +104,10 @@ async function loadPatients(){
 <td>${r.email}</td>
 <td>${r.age}</td>
 <td>${r.checkin_date}</td>
-<td>${r.checkout_date}</td>
+<td><input id="chout" placeholder="CheckOut Date" type="date"></td>
 <td>
 <button onclick="deletePatient(${r.id})">🗑 Delete</button>
+<button onclick="editPatient(${r.id},${r.device_id},${r.p_name},${r.ph_no},${r.email},${r.age},${r.checkin_date},document.getElementById('chout').value)">🗑 Edit</button>
 </td>
 </tr>`;
     });
@@ -114,28 +115,28 @@ async function loadPatients(){
     console.error('Load patients error:', err);
   }
 }
-async function editPatient(){
-  const body = {
-    device_id: document.getElementById('device_id').value,
-    pname: document.getElementById('pname').value,
-    pmobile: document.getElementById('pmobile').value,
-    email:document.getElementById('email').value,
-    age: Number(document.getElementById('age').value),
-    chin:(document.getElementById('chin').value),
-    chout:(document.getElementById('chout').value)
+async function editPatient(id,dn,pn,phn,em,age,chin,chout){
+//  const body = {
+  //  device_id: document.getElementById('device_id').value,
+    //pname: document.getElementById('pname').value,
+   // pmobile: document.getElementById('pmobile').value,
+    //email:document.getElementById('email').value,
+    //age: Number(document.getElementById('age').value),
+    //chin:(document.getElementById('chin').value),
+    //chout:(document.getElementById('chout').value)
     
   };
 
-  if(!body.device_id || !body.pname) {
-    alert('Device ID and Patient Name are required!');
-    return;
-  }
+ // if(!body.device_id || !body.pname) {
+ //   alert('Device ID and Patient Name are required!');
+ //   return;
+ // }
 
   try {
     await fetch('/api/update', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body)
+      body: JSON.stringify(id,dn,pn,phn,em,age,chin,chout)
     });
     clearForm();
     loadPatients();
