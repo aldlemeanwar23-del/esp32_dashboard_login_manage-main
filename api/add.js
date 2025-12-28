@@ -5,11 +5,11 @@ export default async function handler(req, res) {
   if (req.method !== 'POST')
     return res.status(405).json({ message:'Method not allowed' });
 
-  const { device_id,pname,pmobile,email,age,chin,chout } = req.body;
+  const { device_id,pname,pmobile,email,age,chin} = req.body;
 
   await sql`
-    INSERT INTO informations(device_id,p_name,ph_no,email,age,checkin_date,checkout_date)
-    VALUES(${device_id},${pname},${pmobile},${email},${age},${chin},${chout})
+    INSERT INTO informations(device_id,p_name,ph_no,email,age,checkin_date)
+    VALUES(${device_id},${pname},${pmobile},${email},${age},${chin})
   `;
 
   res.json({ success:true });
