@@ -127,14 +127,13 @@ async function saveRow(btn){
   const tr = btn.closest('tr');
 
   const body = {
-    id: tr.dataset.id,
     device_id: tr.querySelector('.device_id input').value,
-    p_name: tr.querySelector('.p_name input').value,
-    ph_no: tr.querySelector('.ph_no input').value,
+    pname: tr.querySelector('.p_name input').value,
+    pmobile: tr.querySelector('.ph_no input').value,
     email: tr.querySelector('.email input').value,
-    age: tr.querySelector('.age input').value,
-    checkin_date: tr.querySelector('.checkin_date input').value,
-    checkout_date: tr.querySelector('.checkout_date input').value
+    age: Number(tr.querySelector('.age input').value),
+    chin: tr.querySelector('.checkin_date input').value,
+    chout: tr.querySelector('.checkout_date input').value
   };
 
   await fetch('/api/update',{
@@ -145,6 +144,7 @@ async function saveRow(btn){
 
   loadPatients();
 }
+
 
 /* ADD */
 async function addPatient(){
