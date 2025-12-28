@@ -11,7 +11,7 @@ body {
   color:#fff;
   font-family:Segoe UI;
 }
-h2 { text-align:center; color:#00ffff; margin-top:20px; }
+h2 { color:#00ffff; text-align:center; }
 table {
   width:95%;
   margin:auto;
@@ -23,32 +23,32 @@ th,td {
   text-align:center;
 }
 th { background:#001f2f; }
-input,button {
-  padding:8px;
+button {
+  padding:6px 10px;
   border-radius:6px;
   border:none;
-}
-button {
-  background:#00ffff;
   cursor:pointer;
   font-weight:bold;
 }
-button:hover { background:#00bcd4; color:#fff; }
-.form {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:10px;
-  width:95%;
-  margin:15px auto;
+.edit { background:#22c55e; }
+.save { background:#0ea5e9; }
+.cancel { background:#f97316; }
+.delete { background:#ef4444; }
+input {
+  width:100%;
+  padding:4px;
+  background:#020617;
+  color:#fff;
+  border:1px solid #00ffff44;
+  border-radius:4px;
 }
 .top-bar {
+  width:95%;
+  margin:15px auto;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  width:95%;
-  margin:10px auto;
 }
-.top-bar button { margin:0; }
 </style>
 </head>
 
@@ -60,27 +60,21 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 
 <div class="top-bar">
   <h2>🧾 Patient Management</h2>
-  <button onclick="location.href='admin.html'">← Back to Dashboard</button>
-</div>
-
-<div class="form">
-  <input id="device_id" placeholder="Device ID">
-  <input id="pname" placeholder="Patient Name">
-  <input id="pmobile" placeholder="Mobile">
-  <input id="email" placeholder="Email">
-  <input id="age" placeholder="Age">
-  <input id="chin" placeholder="CheckIn Date" type="date">
-  <input id="chout" placeholder="CheckOut Date" type="date">
-  <button onclick="addPatient()">Add</button>
-  <button onclick="editPatient()"> Edit </button>
-  <button onclick="TransferToArchive()"> Save To Archive </button>
+  <button onclick="location.href='admin.html'">← Back</button>
 </div>
 
 <table>
 <thead>
 <tr>
-<th>ID</th><th>Device ID</th>
-<th>Patient Name</th><th>Mobile</th><th>Email</th><th>Age</th><th>CheckIn Date</th><th>CheckOut Date</th><th>Action</th>
+<th>ID</th>
+<th>Device</th>
+<th>Name</th>
+<th>Mobile</th>
+<th>Email</th>
+<th>Age</th>
+<th>CheckIn</th>
+<th>CheckOut</th>
+<th>Action</th>
 </tr>
 </thead>
 <tbody id="rows"></tbody>
@@ -88,143 +82,74 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 
 <script>
 async function loadPatients(){
-  try {
-    const res = await fetch('/api/infoGet');
-    const data = await res.json();
-    const tbody = document.getElementById('rows');
-    tbody.innerHTML = '';
+  const res = await fetch('/api/infoGet');
+  const data = await res.json();
+  const tbody = document.getElementById('rows');
+  tbody.innerHTML = '';
 
-    data.forEach(r => {
-      tbody.innerHTML += `
-<tr>
+  data.forEach(r=>{
+    tbody.innerHTML += `
+<tr data-id="${r.id}">
 <td>${r.id}</td>
-<td>${r.device_id}</td>
-<td>${r.p_name}</td>
-<td>${r.ph_no}</td>
-<td>${r.email}</td>
-<td>${r.age}</td>
-<td>${r.checkin_date}</td>
-<td><input id="chout" placeholder="CheckOut Date" type="date"></td>
+<td class="d">${r.device_id}</td>
+<td class="p">${r.p_name}</td>
+<td class="m">${r.ph_no}</td>
+<td class="e">${r.email}</td>
+<td class="a">${r.age}</td>
+<td class="ci">${r.checkin_date}</td>
+<td class="co">${r.checkout_date || ''}</td>
 <td>
-<button onclick="deletePatient(${r.id})">🗑 Delete</button>
-<button onclick="editPatient(${r.device_id},${r.p_name},${r.ph_no},${r.email},${r.age},${r.checkin_date},document.getElementById('chout').value)">🗑 Edit</button>
+  <button class="edit" onclick="editRow(this)">Edit</button>
+  <button class="delete" onclick="deletePatient(${r.id})">Delete</button>
 </td>
 </tr>`;
-    });
-  } catch(err){
-    console.error('Load patients error:', err);
-  }
-}
-async function editPatient(dn,pn,phn,em,age,chin,chout){
-//  const body = {
-  //  device_id: document.getElementById('device_id').value,
-    //pname: document.getElementById('pname').value,
-   // pmobile: document.getElementById('pmobile').value,
-    //email:document.getElementById('email').value,
-    //age: Number(document.getElementById('age').value),
-    //chin:(document.getElementById('chin').value),
-    //chout:(document.getElementById('chout').value)
-    
-  };
-
- // if(!body.device_id || !body.pname) {
- //   alert('Device ID and Patient Name are required!');
- //   return;
- // }
-
-  try {
-    await fetch('/api/update', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(id,dn,pn,phn,em,age,chin,chout)
-    });
-    clearForm();
-    loadPatients();
-  } catch(err){
-    console.error('Add patient error:', err);
-  }
+  });
 }
 
-async function addPatient(){
+function editRow(btn){
+  const tr = btn.closest('tr');
+  ['d','p','m','e','a','ci','co'].forEach(c=>{
+    const td = tr.querySelector('.'+c);
+    td.innerHTML = `<input value="${td.innerText}">`;
+  });
+
+  tr.querySelector('td:last-child').innerHTML = `
+    <button class="save" onclick="saveRow(this)">Save</button>
+    <button class="cancel" onclick="loadPatients()">Cancel</button>
+  `;
+}
+
+async function saveRow(btn){
+  const tr = btn.closest('tr');
+
   const body = {
-    device_id: document.getElementById('device_id').value,
-    pname: document.getElementById('pname').value,
-    pmobile: document.getElementById('pmobile').value,
-    email:document.getElementById('email').value,
-    age: Number(document.getElementById('age').value),
-    chin:(document.getElementById('chin').value),
-    //chout:(document.getElementById('chout').value)
+    id: tr.dataset.id,
+    device_id: tr.querySelector('.d input').value,
+    pname: tr.querySelector('.p input').value,
+    pmobile: tr.querySelector('.m input').value,
+    email: tr.querySelector('.e input').value,
+    age: Number(tr.querySelector('.a input').value),
+    chin: tr.querySelector('.ci input').value,
+    chout: tr.querySelector('.co input').value
   };
 
-  if(!body.device_id || !body.pname) {
-    alert('Device ID and Patient Name are required!');
-    return;
-  }
+  await fetch('/api/update',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
 
-  try {
-    await fetch('/api/add', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
-    clearForm();
-    loadPatients();
-  } catch(err){
-    console.error('Add patient error:', err);
-  }
+  loadPatients();
 }
 
 async function deletePatient(id){
-  if(!confirm('Are you sure you want to delete this patient?')) return;
-  try {
-    await fetch('/api/infoDelete', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({id})
-    });
-    loadPatients();
-  } catch(err){
-    console.error('Delete patient error:', err);
-  }
-}
-async function TransferToArchive(){
- const body = {
-    device_id: document.getElementById('device_id').value,
-    pname: document.getElementById('pname').value,
-    pmobile: document.getElementById('pmobile').value,
-    email:document.getElementById('email').value,
-    age: Number(document.getElementById('age').value),
-    chin:(document.getElementById('chin').value),
-    chout:(document.getElementById('chout').value)
-    
-  };
-
-  if(!body.device_id || !body.pname) {
-    alert('Device ID and Patient Name are required!');
-    return;
-  }
-
-  try {
-    await fetch('/api/update', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
-    clearForm();
-    loadPatients();
-  } catch(err){
-    console.error('Add patient error:', err);
-  }
-  
-}
-function clearForm(){
-  document.getElementById('device_id').value = '';
-  document.getElementById('pname').value = '';
-  document.getElementById('pmobile').value = '';
-  document.getElementById('email').value = '';
-  document.getElementById('age').value = '';
-  document.getElementById('chin').value='';
-  document.getElementById('chout').value='';
+  if(!confirm('Delete patient?')) return;
+  await fetch('/api/infoDelete',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({id})
+  });
+  loadPatients();
 }
 
 loadPatients();
