@@ -6,22 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  background:#0a0f1a;
-  color:#fff;
-  font-family:Segoe UI;
-}
+body { background:#0a0f1a; color:#fff; font-family:Segoe UI; }
 h2 { color:#00ffff; }
-table {
-  width:95%;
-  margin:auto;
-  border-collapse:collapse;
-}
-th,td {
-  border:1px solid #00ffff44;
-  padding:8px;
-  text-align:center;
-}
+table { width:95%; margin:auto; border-collapse:collapse; }
+th,td { border:1px solid #00ffff44; padding:8px; text-align:center; }
 th { background:#001f2f; }
 
 input {
@@ -35,25 +23,23 @@ input {
 
 button {
   padding:6px 10px;
-  border-radius:6px;
   border:none;
-  cursor:pointer;
+  border-radius:6px;
   font-weight:bold;
+  cursor:pointer;
 }
-.add { background:#22c55e; }
-.edit { background:#0ea5e9; }
-.save { background:#16a34a; }
-.cancel { background:#f97316; }
-.delete { background:#ef4444; }
+.add{background:#22c55e}
+.edit{background:#0ea5e9}
+.save{background:#16a34a}
+.cancel{background:#f97316}
+.delete{background:#ef4444}
 
 .top-bar {
   width:95%;
   margin:15px auto;
   display:flex;
   justify-content:space-between;
-  align-items:center;
 }
-
 .form {
   width:95%;
   margin:15px auto;
@@ -75,29 +61,22 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
   <button onclick="location.href='admin.html'">← Back</button>
 </div>
 
-<!-- ✅ ADD FORM -->
+<!-- ADD -->
 <div class="form">
   <input id="device_id" placeholder="Device ID">
-  <input id="pname" placeholder="Patient Name">
-  <input id="pmobile" placeholder="Mobile">
+  <input id="p_name" placeholder="Patient Name">
+  <input id="ph_no" placeholder="Mobile">
   <input id="email" placeholder="Email">
   <input id="age" placeholder="Age">
-  <input id="chin" type="date">
+  <input id="checkin_date" type="date">
   <button class="add" onclick="addPatient()">➕ Add</button>
 </div>
 
 <table>
 <thead>
 <tr>
-<th>ID</th>
-<th>Device</th>
-<th>Name</th>
-<th>Mobile</th>
-<th>Email</th>
-<th>Age</th>
-<th>CheckIn</th>
-<th>CheckOut</th>
-<th>Action</th>
+<th>ID</th><th>Device</th><th>Name</th><th>Mobile</th>
+<th>Email</th><th>Age</th><th>CheckIn</th><th>CheckOut</th><th>Action</th>
 </tr>
 </thead>
 <tbody id="rows"></tbody>
@@ -107,20 +86,20 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 async function loadPatients(){
   const res = await fetch('/api/infoGet');
   const data = await res.json();
-  const tbody = document.getElementById('rows');
-  tbody.innerHTML = '';
+  const rows = document.getElementById('rows');
+  rows.innerHTML='';
 
   data.forEach(r=>{
-    tbody.innerHTML += `
+    rows.innerHTML += `
 <tr data-id="${r.id}">
 <td>${r.id}</td>
-<td class="device">${r.device_id}</td>
-<td class="name">${r.p_name}</td>
-<td class="mobile">${r.ph_no}</td>
+<td class="device_id">${r.device_id}</td>
+<td class="p_name">${r.p_name}</td>
+<td class="ph_no">${r.ph_no}</td>
 <td class="email">${r.email}</td>
 <td class="age">${r.age}</td>
-<td class="chin">${r.checkin_date}</td>
-<td class="chout">${r.checkout_date || ''}</td>
+<td class="checkin_date">${r.checkin_date}</td>
+<td class="checkout_date">${r.checkout_date||''}</td>
 <td>
   <button class="edit" onclick="editRow(this)">Edit</button>
   <button class="delete" onclick="deletePatient(${r.id})">Delete</button>
@@ -129,15 +108,16 @@ async function loadPatients(){
   });
 }
 
-/* ✅ INLINE EDIT */
+/* INLINE EDIT */
 function editRow(btn){
   const tr = btn.closest('tr');
-  ['device','name','mobile','email','age','chin','chout'].forEach(c=>{
+  ['device_id','p_name','ph_no','email','age','checkin_date','checkout_date']
+  .forEach(c=>{
     const td = tr.querySelector('.'+c);
     td.innerHTML = `<input value="${td.innerText}">`;
   });
 
-  tr.querySelector('td:last-child').innerHTML = `
+  tr.lastElementChild.innerHTML = `
     <button class="save" onclick="saveRow(this)">Save</button>
     <button class="cancel" onclick="loadPatients()">Cancel</button>
   `;
@@ -148,13 +128,13 @@ async function saveRow(btn){
 
   const body = {
     id: tr.dataset.id,
-    device_id: tr.querySelector('.device input').value,
-    pname: tr.querySelector('.name input').value,
-    pmobile: tr.querySelector('.mobile input').value,
+    device_id: tr.querySelector('.device_id input').value,
+    p_name: tr.querySelector('.p_name input').value,
+    ph_no: tr.querySelector('.ph_no input').value,
     email: tr.querySelector('.email input').value,
-    age: Number(tr.querySelector('.age input').value),
-    chin: tr.querySelector('.chin input').value,
-    chout: tr.querySelector('.chout input').value
+    age: tr.querySelector('.age input').value,
+    checkin_date: tr.querySelector('.checkin_date input').value,
+    checkout_date: tr.querySelector('.checkout_date input').value
   };
 
   await fetch('/api/update',{
@@ -166,18 +146,18 @@ async function saveRow(btn){
   loadPatients();
 }
 
-/* ✅ ADD */
+/* ADD */
 async function addPatient(){
   const body = {
     device_id: device_id.value,
-    pname: pname.value,
-    pmobile: pmobile.value,
+    p_name: p_name.value,
+    ph_no: ph_no.value,
     email: email.value,
-    age: Number(age.value),
-    chin: chin.value
+    age: age.value,
+    checkin_date: checkin_date.value
   };
 
-  if(!body.device_id || !body.pname){
+  if(!body.device_id || !body.p_name){
     alert('Device ID & Patient Name required');
     return;
   }
@@ -188,17 +168,11 @@ async function addPatient(){
     body: JSON.stringify(body)
   });
 
-  device_id.value='';
-  pname.value='';
-  pmobile.value='';
-  email.value='';
-  age.value='';
-  chin.value='';
-
+  document.querySelectorAll('.form input').forEach(i=>i.value='');
   loadPatients();
 }
 
-/* ✅ DELETE */
+/* DELETE */
 async function deletePatient(id){
   if(!confirm('Delete patient?')) return;
 
