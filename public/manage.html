@@ -107,7 +107,7 @@ async function loadPatients(){
 <td><input id="chout" placeholder="CheckOut Date" type="date"></td>
 <td>
 <button onclick="deletePatient(${r.id})">🗑 Delete</button>
-<button onclick="editPatient(${r.id},${r.device_id},${r.p_name},${r.ph_no},${r.email},${r.age},${r.checkin_date},document.getElementById('chout').value)">🗑 Edit</button>
+<button onclick="editPatient(${r.device_id},${r.p_name},${r.ph_no},${r.email},${r.age},${r.checkin_date},document.getElementById('chout').value)">🗑 Edit</button>
 </td>
 </tr>`;
     });
@@ -115,7 +115,7 @@ async function loadPatients(){
     console.error('Load patients error:', err);
   }
 }
-async function editPatient(id,dn,pn,phn,em,age,chin,chout){
+async function editPatient(dn,pn,phn,em,age,chin,chout){
 //  const body = {
   //  device_id: document.getElementById('device_id').value,
     //pname: document.getElementById('pname').value,
