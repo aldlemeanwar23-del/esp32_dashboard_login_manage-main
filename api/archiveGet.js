@@ -12,8 +12,8 @@ export default async function handler(req, res) {
       // إذا تم تمرير اسم المريض، البحث عنه
       data = await sql`
        SELECT * FROM sensor_data_archive
-        WHERE p_name ILIKE ${'%' + search + '%'}
-        ORDER BY s.timestamp DESC
+        WHERE p_name LIKE ${'%' + search + '%'}
+        ORDER BY timestamp DESC
       `;
     } 
 
