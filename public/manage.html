@@ -34,7 +34,6 @@ h2 {
   font-size: 28px;
 }
 
-/* Top bar */
 .top-bar {
   display:flex;
   justify-content:space-between;
@@ -54,11 +53,8 @@ h2 {
   cursor: pointer;
   transition: 0.2s;
 }
-.top-bar button:hover {
-  background: var(--btn-add);
-}
+.top-bar button:hover { background: var(--btn-add); }
 
-/* Form styles */
 .form {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
@@ -74,7 +70,6 @@ h2 {
   color:#fff;
   text-align:center;
   font-size:14px;
-  transition: 0.2s;
 }
 .form input:focus {
   border-color: var(--secondary);
@@ -91,7 +86,6 @@ h2 {
 }
 .form button:hover { opacity:0.85; }
 
-/* Table styles */
 table {
   width:95%;
   margin:auto;
@@ -110,19 +104,11 @@ th, td {
   border-bottom:1px solid var(--border);
 }
 
-th {
-  background:#001f2f;
-  position: sticky;
-  top:0;
-  z-index:2;
-}
-
-tr:hover {
-  background: var(--hover);
-}
+th { background:#001f2f; position: sticky; top:0; z-index:2; }
+tr:hover { background: var(--hover); }
 
 input.inline-input {
-  width: 100%;
+  width: 75%;
   padding:6px 4px;
   border-radius:5px;
   border:1px solid var(--border);
@@ -141,39 +127,17 @@ button.action-btn {
   margin:1px;
   transition: 0.1s;
 }
-button.action-btn:hover {
-  transform: scale(1.05);
-}
+button.action-btn:hover { transform: scale(1.05); }
 button.save { background: var(--btn-save); color:#020617; }
 button.delete { background: var(--btn-delete); color:#fff; }
 button.archive { background: var(--btn-archive); color:#020617; }
 
 @media (max-width: 768px) {
-  table, thead, tbody, th, td, tr {
-    display:block;
-  }
-  tr {
-    margin-bottom:15px;
-  }
-  th, td {
-    text-align:right;
-    padding-right:15px;
-    position:relative;
-  }
-  th::before, td::before {
-    position:absolute;
-    left:10px;
-    text-align:left;
-    font-weight:bold;
-    white-space:nowrap;
-  }
-  td::before {
-    content: attr(data-label);
-    color:#00ffff;
-  }
-  th::before {
-    display:none;
-  }
+  table, thead, tbody, th, td, tr { display:block; }
+  tr { margin-bottom:15px; }
+  th, td { text-align:right; padding-right:15px; position:relative; }
+  td::before { position:absolute; left:10px; text-align:left; font-weight:bold; white-space:nowrap; content: attr(data-label); color:#00ffff; }
+  th::before { display:none; }
 }
 </style>
 </head>
@@ -189,7 +153,6 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
   <button onclick="location.href='admin.html'">← Back</button>
 </div>
 
-<!-- ADD PATIENT -->
 <div class="form">
   <input id="device_id" placeholder="Device ID">
   <input id="pname" placeholder="Patient Name">
@@ -240,7 +203,7 @@ async function loadPatients(){
 <td data-label="Actions">
   <button class="action-btn save" onclick="saveRow(this)">💾</button>
   <button class="action-btn delete" onclick="deletePatient(${r.id})">🗑</button>
-  <button class="action-btn archive" onclick="archivePatient(this)">📦</button>
+  <button class="action-btn archive" onclick="archivePatient('${r.device_id}')">📦</button>
 </td>
 </tr>`;
   });
@@ -267,37 +230,31 @@ async function saveRow(btn){
 
     if(!res.ok) throw await res.json();
     loadPatients();
+    alert('Patient updated successfully');
   } catch(e){
     console.error(e);
     alert('Update failed');
   }
 }
 
-async function archivePatient(btn){
-  const row = btn.closest('tr');
-  const body = {
-    device_id: row.dataset.device,
-    pname: row.querySelector('.pname').value,
-    pmobile: row.querySelector('.pmobile').value,
-    email: row.querySelector('.email').value,
-    age: Number(row.querySelector('.age').value) || null,
-    chin: row.querySelector('.chin').value || null,
-    chout: row.querySelector('.chout').value || null
-  };
-
+async function archivePatient(device_id){
+  if(!confirm('Archive this patient and all sensor data?')) return;
   try {
-    const res = await fetch('/api/archive', { // استخدم نفس API للارشيف
+    const res = await fetch('/api/archive',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body)
+      body: JSON.stringify({ device_id })
     });
-
-    if(!res.ok) throw await res.json();
-    alert('Patient archived successfully');
-    loadPatients();
+    const result = await res.json();
+    if(result.success){
+      alert('Patient archived successfully');
+      loadPatients();
+    } else {
+      alert('Archive failed: ' + (result.error || 'Unknown error'));
+    }
   } catch(e){
     console.error(e);
-    alert('Archiving failed');
+    alert('Archive failed');
   }
 }
 
