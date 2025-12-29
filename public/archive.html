@@ -2,61 +2,57 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Archive Data</title>
+<title>Archived Sensor Data</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 :root {
-  --primary: #0ea5e9;
-  --secondary: #00ffff;
-  --bg: #0c111b;
-  --card-bg: rgba(255,255,255,0.05);
-  --border: rgba(255,255,255,0.2);
-  --hover: rgba(0,255,255,0.1);
-  --font: 'Segoe UI', Arial, sans-serif;
+  --primary:#0ea5e9;
+  --secondary:#00ffff;
+  --bg:#0c111b;
+  --card:rgba(255,255,255,0.05);
+  --border:rgba(255,255,255,0.2);
+  --hover:rgba(0,255,255,0.1);
+  --font:'Segoe UI', Arial;
 }
 
 body {
   margin:0;
-  font-family: var(--font);
-  background: var(--bg);
-  color: #fff;
-}
-
-h2 {
-  text-align:center;
-  color: var(--secondary);
-  margin: 20px 0;
+  font-family:var(--font);
+  background:var(--bg);
+  color:#fff;
 }
 
 .top-bar {
+  width:95%;
+  margin:20px auto;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  width:95%;
-  margin:auto;
-  padding:10px 0;
+}
+
+.top-bar h2 {
+  color:var(--secondary);
 }
 
 .top-bar button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 8px;
-  background: var(--primary);
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
+  padding:8px 16px;
+  border:none;
+  border-radius:8px;
+  background:var(--primary);
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
 }
-.top-bar button:hover { background: #00bcd4; }
 
 .search-bar {
   width:95%;
   margin:10px auto;
   display:flex;
-  gap:10px;
   justify-content:flex-end;
+  gap:10px;
 }
+
 .search-bar input {
   padding:6px 10px;
   border-radius:6px;
@@ -64,120 +60,117 @@ h2 {
   background:#020617;
   color:#fff;
 }
+
 .search-bar button {
-  padding:6px 12px;
+  padding:6px 14px;
   border-radius:6px;
   border:none;
-  cursor:pointer;
-  background: var(--primary);
+  background:var(--primary);
   color:#fff;
   font-weight:bold;
-  transition:0.2s;
+  cursor:pointer;
 }
-.search-bar button:hover { opacity:0.85; }
 
 table {
   width:95%;
   margin:auto;
   border-collapse:separate;
   border-spacing:0;
-  background: var(--card-bg);
+  background:var(--card);
   border-radius:12px;
   overflow:hidden;
-  box-shadow: 0 5px 15px rgba(0,255,255,0.15);
 }
 
-th, td {
-  padding:8px 6px;
+th,td {
+  padding:8px;
   text-align:center;
-  font-size:14px;
   border-bottom:1px solid var(--border);
 }
 
-th { background:#001f2f; position: sticky; top:0; z-index:2; }
-tr:hover { background: var(--hover); }
+th {
+  background:#001f2f;
+}
 
-@media (max-width: 768px) {
-  table, thead, tbody, th, td, tr { display:block; }
-  tr { margin-bottom:15px; }
-  th, td { text-align:right; padding-right:15px; position:relative; }
-  td::before { position:absolute; left:10px; text-align:left; font-weight:bold; white-space:nowrap; content: attr(data-label); color:#00ffff; }
-  th::before { display:none; }
+tr:hover {
+  background:var(--hover);
 }
 </style>
 </head>
 
 <body>
+
 <script>
 if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 </script>
 
 <div class="top-bar">
-  <h2>📦 Archived Sensor Data</h2>
+  <h2>📦 Archive</h2>
   <button onclick="location.href='admin.html'">← Back</button>
 </div>
 
 <div class="search-bar">
-  <input type="text" id="searchInput" placeholder="Search by Patient Name">
+  <input id="searchInput" placeholder="Search by patient name">
   <button onclick="loadArchive()">Search</button>
 </div>
 
 <table>
 <thead>
 <tr>
-<th>ID</th>
-<th>Device</th>
-<th>Patient</th>
-<th>Heart Rate</th>
-<th>SpO₂</th>
-<th>Timestamp</th>
+  <th>ID</th>
+  <th>Device</th>
+  <th>Patient Name</th>
+  <th>Heart Rate</th>
+  <th>SpO₂</th>
+  <th>Date</th>
 </tr>
 </thead>
 <tbody id="archiveRows"></tbody>
 </table>
 
 <script>
+/* ====== LOAD ARCHIVE (GLOBAL FUNCTION) ====== */
 async function loadArchive() {
-  const search = document.getElementById('searchInput').value;
- const res = await fetch(`/api/archiveGet',{
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ search  })
-     });  
-   if(!res.ok){
+  const search = document.getElementById('searchInput').value || '';
+
+  try {
+    const res = await fetch('/api/archiveGet?search=' + encodeURIComponent(search));
+
+    if (!res.ok) {
       const text = await res.text();
-      console.error('Server error:', text);
-      alert('Failed to fetch archive data');
+      console.error(text);
+      alert('Server error');
       return;
     }
-   const data = await res.json();
+
     const data = await res.json();
     const tbody = document.getElementById('archiveRows');
     tbody.innerHTML = '';
 
-    if(data.length === 0){
-      tbody.innerHTML = `<tr><td colspan="6">No records found</td></tr>`;
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="6">No archived data</td></tr>`;
       return;
     }
 
     data.forEach(r => {
       tbody.innerHTML += `
-<tr>
-<td data-label="ID">${r.id}</td>
-<td data-label="Device">${r.device_id}</td>
-<td data-label="Patient">${r.p_name || ''}</td>
-<td data-label="Heart Rate">${r.heartrate}</td>
-<td data-label="SpO₂">${r.spo2}</td>
-<td data-label="Timestamp">${new Date(r.timestamp).toLocaleString()}</td>
-</tr>`;
+        <tr>
+          <td>${r.id}</td>
+          <td>${r.device_id}</td>
+          <td>${r.p_name || ''}</td>
+          <td>${r.heartrate}</td>
+          <td>${r.spo2}</td>
+          <td>${new Date(r.timestamp).toLocaleString()}</td>
+        </tr>
+      `;
     });
-  } catch(err){
-    console.error('Fetch error:', err);
-    alert('Error loading archive');
+
+  } catch (err) {
+    console.error(err);
+    alert('Failed to load archive');
   }
 }
 
-// Load all data on page load
+/* تحميل البيانات عند فتح الصفحة */
 loadArchive();
 </script>
 
