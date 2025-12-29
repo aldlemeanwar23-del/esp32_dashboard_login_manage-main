@@ -5,240 +5,195 @@
 <title>Device Details</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-:root {
-  --primary:#0ea5e9;
-  --bg:#020617;
-  --card:rgba(255,255,255,.08);
-  --border:rgba(255,255,255,.15);
+* { box-sizing: border-box; margin:0; padding:0; }
+body, html { width:100%; height:100%; font-family:'Segoe UI', Arial; background:#0a0f1a; color:#fff; }
+
+header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:15px 25px; background:#001f2f; color:#00ffff; font-size:20px;
 }
-body {
-  margin:0;
-  font-family:Segoe UI, Arial;
-  background:var(--bg);
-  color:#e5e7eb;
+header button {
+  padding:8px 16px; border:none; border-radius:6px;
+  background:#00ffff; color:#020617; font-weight:bold; cursor:pointer;
 }
-.top-bar {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:18px 30px;
-  border-bottom:1px solid var(--border);
-}
-.top-bar h2 { margin:0; color:var(--primary); }
-.top-bar button {
-  padding:8px 16px;
-  border:none;
-  border-radius:8px;
-  background:var(--primary);
-  color:#fff;
-  font-weight:600;
-  cursor:pointer;
-}
+header button:hover { background:#00bcd4; }
 
 .container {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-  gap:20px;
-  padding:30px;
+  display:flex; flex-direction:column; height:calc(100% - 60px); padding:15px 20px; gap:15px;
 }
 
-.device-card {
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:16px;
-  padding:20px;
-  min-height:300px;
-  position:relative;
-  display:flex;
-  flex-direction:column;
-  transition: 0.3s;
+.results {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
 }
-.device-card.connected { border-color: #22c55e; }
-.device-card.disconnected { border-color: #888; }
 
-.device-card h3 {
-  margin:0 0 8px;
-  color:var(--primary);
+.result-card, .patient-card {
+  flex: 0 0 250px; 
+  background: rgba(0,255,255,0.1);
+  padding: 12px;
+  border-radius: 12px;
+  text-align: center;
+  transition:0.3s;
+}
+
+.result-card h3, .patient-card h3 {
   font-size:20px;
-}
-
-.patient-name {
-  font-size:18px;
   color:#00ffff;
-  margin-bottom:10px;
+  margin-bottom:8px;
 }
 
-.status {
-  flex:1;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:20px;
-  font-weight:700;
+.result-card .value, .patient-card .value {
+  font-size:22px;
+  font-weight:bold;
+}
+
+.charts {
+  display:flex; flex-direction:column; align-items:center; gap:15px;
+}
+.chart-container {
+  width:90%; height:180px; 
+}
+
+.status-msg {
+  text-align:center;
+  font-size:22px;
+  font-weight:bold;
   color:#22c55e;
-}
-
-.content { display:none; flex-direction:column; flex:1; }
-
-.data {
-  display:flex;
-  justify-content:space-between;
-  margin:6px 0;
-}
-
-canvas { height:80px !important; margin-top:8px; }
-
-.open-btn {
-  width:100%;
-  margin-top:10px;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  background:#22c55e;
-  color:#020617;
-  font-weight:700;
-  cursor:pointer;
+  margin-top:30px;
+  display:none;
 }
 </style>
 </head>
-
 <body>
 
-<div class="top-bar">
-  <h2>🩺 Device Details</h2>
-  <button onclick="location.href='admin.html'">Back</button>
+<header>
+  <span>Device Details: <span id="deviceName"></span></span>
+  <button onclick="location.href='admin.html'">← Back</button>
+</header>
+
+<div class="container">
+  <div class="results" id="results">
+    <div class="result-card">
+      <h3>Heart Rate</h3>
+      <div class="value" id="hr">-- BPM</div>
+    </div>
+    <div class="result-card">
+      <h3>SpO₂</h3>
+      <div class="value" id="spo">-- %</div>
+    </div>
+    <div class="patient-card">
+      <h3>Patient Name</h3>
+      <div class="value" id="patientName">--</div>
+    </div>
+  </div>
+
+  <div class="charts" id="charts">
+    <div class="chart-container"><canvas id="hrChart"></canvas></div>
+    <div class="chart-container"><canvas id="spoChart"></canvas></div>
+  </div>
+
+  <div class="status-msg" id="statusMsg">الجهاز متاح</div>
 </div>
 
-<div class="container" id="devices"></div>
-
 <script>
-const devices = ['max1','max2','max3','max4'];
-const charts = {};
-const container = document.getElementById('devices');
+const params = new URLSearchParams(window.location.search);
+const device = params.get('device') || 'max1';
+document.getElementById('deviceName').innerText = device.toUpperCase();
 
-devices.forEach(d => {
-  const card = document.createElement('div');
-  card.className = 'device-card disconnected';
-  card.id = d;
+let labels=[], hrData=[], spoData=[];
 
-  card.innerHTML = `
-    <h3>${d.toUpperCase()}</h3>
-    <div class="patient-name">Patient Name: --</div>
-
-    <div class="content">
-      <div class="data"><span>Heart Rate</span><b id="${d}-hr">--</b></div>
-      <div class="data"><span>SpO₂</span><b id="${d}-spo">--</b></div>
-      <canvas id="${d}-hrChart"></canvas>
-      <canvas id="${d}-spoChart"></canvas>
-      <button class="open-btn" onclick="location.href='device.html?device=${d}'">Open Device</button>
-    </div>
-
-    <div class="status">الجهاز متاح</div>
-  `;
-  container.appendChild(card);
-
-  charts[d] = {
-    hr: new Chart(document.getElementById(`${d}-hrChart`), {
-      type:'line',
-      data:{labels:[], datasets:[{data:[], borderColor:'#00ffff'}]},
-      options:{responsive:true, animation:false}
-    }),
-    spo: new Chart(document.getElementById(`${d}-spoChart`), {
-      type:'line',
-      data:{labels:[], datasets:[{data:[], borderColor:'#ff00ff'}]},
-      options:{responsive:true, animation:false}
-    })
-  };
+const hrChart = new Chart(document.getElementById('hrChart'), {
+  type:'line',
+  data:{ labels, datasets:[{label:'Heart Rate', data:hrData, borderColor:'#00ffff', backgroundColor:'rgba(0,255,255,0.2)', fill:true, tension:0.2}]},
+  options:{ responsive:true, maintainAspectRatio:false, animation:false, scales:{y:{beginAtZero:true}} }
 });
 
-function clearCard(device){
-  const card = document.getElementById(device);
-  card.querySelector('.content').style.display = 'none';
-  card.querySelector('.status').style.display = 'flex';
-  card.querySelector('.status').innerText = 'الجهاز متاح';
-  card.querySelector('.patient-name').innerText = 'Patient Name: --';
-  card.classList.remove('connected');
-  card.classList.add('disconnected');
+const spoChart = new Chart(document.getElementById('spoChart'), {
+  type:'line',
+  data:{ labels, datasets:[{label:'SpO₂', data:spoData, borderColor:'#ff00ff', backgroundColor:'rgba(255,0,255,0.2)', fill:true, tension:0.2}]},
+  options:{ responsive:true, maintainAspectRatio:false, animation:false, scales:{y:{beginAtZero:true}} }
+});
 
-  charts[device].hr.data.labels = [];
-  charts[device].hr.data.datasets[0].data = [];
-  charts[device].spo.data.labels = [];
-  charts[device].spo.data.datasets[0].data = [];
-  charts[device].hr.update();
-  charts[device].spo.update();
-
-  document.getElementById(`${device}-hr`).innerText = '--';
-  document.getElementById(`${device}-spo`).innerText = '--';
+// تفريغ البيانات وعرض رسالة عند فقدان الاتصال
+function clearData() {
+  document.getElementById('hr').innerText = '-- BPM';
+  document.getElementById('spo').innerText = '-- %';
+  document.getElementById('patientName').innerText = '--';
+  labels.length = hrData.length = spoData.length = 0;
+  hrChart.update();
+  spoChart.update();
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('charts').style.display = 'none';
+  document.getElementById('statusMsg').style.display = 'block';
 }
 
-function showData(device, row, patient){
-  const card = document.getElementById(device);
-  card.querySelector('.status').style.display = 'none';
-  card.querySelector('.content').style.display = 'flex';
-  card.querySelector('.patient-name').innerText = `Patient Name: ${patient || '--'}`;
-  card.classList.remove('disconnected');
-  card.classList.add('connected');
+// عرض البيانات عند الاتصال
+function showData(last, patient){
+  document.getElementById('hr').innerText = last.heartrate+' BPM';
+  document.getElementById('spo').innerText = last.spo2+' %';
+  document.getElementById('patientName').innerText = patient || '--';
 
-  document.getElementById(`${device}-hr`).innerText = row.heartrate;
-  document.getElementById(`${device}-spo`).innerText = row.spo2;
+  labels.push('');
+  hrData.push(last.heartrate);
+  spoData.push(last.spo2);
 
-  const hrC = charts[device].hr;
-  const spoC = charts[device].spo;
-
-  hrC.data.labels.push('');
-  hrC.data.datasets[0].data.push(row.heartrate);
-  spoC.data.labels.push('');
-  spoC.data.datasets[0].data.push(row.spo2);
-
-  if(hrC.data.labels.length > 15){
-    hrC.data.labels.shift();
-    hrC.data.datasets[0].data.shift();
-    spoC.data.labels.shift();
-    spoC.data.datasets[0].data.shift();
+  if(labels.length > 50){
+    labels.shift();
+    hrData.shift();
+    spoData.shift();
   }
 
-  hrC.update();
-  spoC.update();
+  hrChart.update();
+  spoChart.update();
+
+  document.getElementById('results').style.display = 'flex';
+  document.getElementById('charts').style.display = 'flex';
+  document.getElementById('statusMsg').style.display = 'none';
 }
 
-async function loadDevice(device){
+// جلب اسم المريض من API
+async function loadPatientName() {
   try {
-    // جلب بيانات المريض المرتبط
-    const infoRes = await fetch('/api/infoGet');
-    const patients = await infoRes.json();
-    const patient = patients.find(p => p.device_id === device)?.p_name;
+    const res = await fetch('/api/infoGet');
+    const data = await res.json();
+    const patient = data.find(p => p.device_id === device);
+    return patient ? patient.p_name : '--';
+  } catch {
+    return '--';
+  }
+}
 
+// جلب بيانات الجهاز
+async function loadData(){
+  try{
     const res = await fetch(`/api/sensor?device=${device}`);
     const data = await res.json();
+    const patientName = await loadPatientName();
 
-    if(!Array.isArray(data) || data.length === 0){
-      clearCard(device);
+    if(!data || data.length === 0){
+      clearData();
       return;
     }
 
     const last = data[data.length-1];
     const age = Date.now() - new Date(last.time).getTime();
-
-    if(age > 10000){
-      clearCard(device);
+    if(age > 10000){ // إذا كانت البيانات قديمة
+      clearData();
       return;
     }
 
-    showData(device,last,patient);
+    showData(last, patientName);
 
-  } catch(err){
-    clearCard(device);
+  }catch(e){ 
+    clearData(); 
   }
 }
 
-function loadAll(){
-  devices.forEach(loadDevice);
-}
-
-loadAll();
-setInterval(loadAll,2000);
+// تحميل البيانات كل ثانيتين
+loadData();
+setInterval(loadData, 2000);
 </script>
 
 </body>
