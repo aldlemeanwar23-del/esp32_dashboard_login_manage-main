@@ -47,7 +47,7 @@ body {
 
 .search-bar {
   width:95%;
-  margin:10px auto;
+  margin:10px auto 20px auto;
   display:flex;
   justify-content:flex-end;
   gap:10px;
@@ -94,6 +94,14 @@ th {
 tr:hover {
   background:var(--hover);
 }
+
+.placeholder {
+  width:95%;
+  margin:40px auto;
+  text-align:center;
+  opacity:0.7;
+  font-size:16px;
+}
 </style>
 </head>
 
@@ -113,7 +121,11 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
   <button onclick="loadArchive()">Search</button>
 </div>
 
-<table>
+<div id="placeholder" class="placeholder">
+  🔍 Please search by patient name to view archived data
+</div>
+
+<table id="archiveTable" style="display:none">
 <thead>
 <tr>
   <th>ID</th>
@@ -128,20 +140,28 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 </table>
 
 <script>
-/* ====== LOAD ARCHIVE (GLOBAL FUNCTION) ====== */
 async function loadArchive() {
-  const search = document.getElementById('searchInput').value;
+  const search = document.getElementById('searchInput').value.trim();
+  const tbody = document.getElementById('archiveRows');
+  const table = document.getElementById('archiveTable');
+  const placeholder = document.getElementById('placeholder');
+
+  if (!search) {
+    alert('Please enter patient name');
+    return;
+  }
 
   try {
     const res = await fetch('/api/archiveGet?search=' + encodeURIComponent(search));
     const text = await res.text();
-
     const data = text ? JSON.parse(text) : [];
-    const tbody = document.getElementById('archiveRows');
+
     tbody.innerHTML = '';
+    table.style.display = 'table';
+    placeholder.style.display = 'none';
 
     if (!data.length) {
-      tbody.innerHTML = `<tr><td colspan="6">No archived data</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6">No results found</td></tr>`;
       return;
     }
 
@@ -163,11 +183,6 @@ async function loadArchive() {
     alert('Failed to load archive');
   }
 }
-
-
-
-/* تحميل البيانات عند فتح الصفحة */
-loadArchive();
 </script>
 
 </body>
