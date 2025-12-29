@@ -139,8 +139,11 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 <script>
 async function loadArchive() {
   const search = document.getElementById('searchInput').value;
-  try {
-    const res = await fetch(`/api/archiveGet?search=${encodeURIComponent(search)}`);
+ const res = await fetch(`/api/archiveGet',
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ search  })
+ 
     
     if(!res.ok){
       const text = await res.text();
