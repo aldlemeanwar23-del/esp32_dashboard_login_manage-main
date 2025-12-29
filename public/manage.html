@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Manage Patients</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 :root {
   --primary: #0ea5e9;
@@ -11,9 +12,10 @@
   --bg: #0a0f1a;
   --card-bg: rgba(255,255,255,0.05);
   --border: rgba(255,255,255,0.2);
-  --hover: rgba(0,255,255,0.2);
-  --btn-bg: #00ffff;
-  --btn-hover: #00bcd4;
+  --hover: rgba(0,255,255,0.1);
+  --btn-save: #22c55e;
+  --btn-delete: #ef4444;
+  --btn-add: #00bcd4;
 }
 
 body {
@@ -26,7 +28,7 @@ body {
 h2 {
   text-align:center;
   color: var(--secondary);
-  margin-top: 20px;
+  margin: 15px 0;
   font-size: 28px;
 }
 
@@ -35,7 +37,7 @@ h2 {
   justify-content:space-between;
   align-items:center;
   width:95%;
-  margin: 10px auto;
+  margin:auto;
   padding:10px 0;
 }
 
@@ -49,10 +51,37 @@ h2 {
   cursor: pointer;
   transition: background 0.2s;
 }
-
 .top-bar button:hover {
-  background: var(--btn-hover);
+  background: var(--btn-add);
 }
+
+/* Form styles */
+.form {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:10px;
+  width:95%;
+  margin:15px auto;
+}
+.form input, .form button {
+  padding:6px 8px;
+  border-radius:5px;
+  border:none;
+  font-size:14px;
+}
+.form input {
+  background:#020617;
+  color:#fff;
+  border:1px solid var(--border);
+  text-align:center;
+}
+.form button {
+  background: var(--btn-add);
+  color:#020617;
+  font-weight:bold;
+  cursor:pointer;
+}
+.form button:hover { opacity:0.85; }
 
 /* Table styles */
 table {
@@ -62,54 +91,52 @@ table {
   background: var(--card-bg);
   border-radius:12px;
   overflow:hidden;
-  box-shadow:0 0 15px rgba(0,255,255,0.2);
+  box-shadow:0 0 10px rgba(0,255,255,0.2);
 }
 
 th, td {
   border-bottom: 1px solid var(--border);
-  padding:8px;
+  padding:6px;
   text-align:center;
   font-size:14px;
 }
 
 th {
   background:#001f2f;
-  font-size:15px;
 }
 
 tr:hover {
   background: var(--hover);
 }
 
+input.inline-input {
+  width: 100%;
+  padding:4px 6px;
+  border-radius:4px;
+  border:1px solid var(--border);
+  background: #020617;
+  color:#fff;
+  text-align:center;
+}
+
 button.action-btn {
-  padding:5px 10px;
+  padding:4px 8px;
   border:none;
   border-radius:6px;
   cursor:pointer;
   font-weight:bold;
-  margin:2px;
+  margin:1px;
   transition: transform 0.1s;
 }
 
 button.action-btn:hover {
   transform: scale(1.05);
 }
-
-button.save-btn { background:#facc15; color:#020617; }
-button.delete-btn { background:#ef4444; color:#fff; }
-button.add-btn { background:#22c55e; color:#020617; }
-
-input.inline-input {
-  width: 100%;
-  padding:4px 6px;
-  border-radius:4px;
-  border:1px solid var(--border);
-  background: var(--card-bg);
-  color:#fff;
-  text-align:center;
-}
+button.save { background: var(--btn-save); color:#020617; }
+button.delete { background: var(--btn-delete); color:#fff; }
 </style>
 </head>
+
 <body>
 
 <script>
@@ -118,142 +145,125 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 
 <div class="top-bar">
   <h2>🧾 Patient Management</h2>
-  <button onclick="location.href='admin.html'">← Back to Dashboard</button>
+  <button onclick="location.href='admin.html'">← Back</button>
+</div>
+
+<!-- ADD PATIENT -->
+<div class="form">
+  <input id="device_id" placeholder="Device ID">
+  <input id="pname" placeholder="Patient Name">
+  <input id="pmobile" placeholder="Mobile">
+  <input id="email" placeholder="Email">
+  <input id="age" placeholder="Age">
+  <input id="chin" type="date">
+  <button onclick="addPatient()">Add Patient</button>
 </div>
 
 <table>
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Device ID</th>
-      <th>Patient Name</th>
-      <th>Mobile</th>
-      <th>Email</th>
-      <th>Age</th>
-      <th>CheckIn Date</th>
-      <th>CheckOut Date</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody id="rows"></tbody>
-  <tfoot>
-    <tr>
-      <td>#</td>
-      <td><input type="text" id="new-device" class="inline-input" placeholder="Device ID"></td>
-      <td><input type="text" id="new-name" class="inline-input" placeholder="Patient Name"></td>
-      <td><input type="text" id="new-mobile" class="inline-input" placeholder="Mobile"></td>
-      <td><input type="text" id="new-email" class="inline-input" placeholder="Email"></td>
-      <td><input type="number" id="new-age" class="inline-input" placeholder="Age"></td>
-      <td><input type="date" id="new-chin" class="inline-input"></td>
-      <td><input type="date" id="new-chout" class="inline-input"></td>
-      <td><button class="action-btn add-btn" onclick="addRow()">Add</button></td>
-    </tr>
-  </tfoot>
+<thead>
+<tr>
+<th>ID</th>
+<th>Device</th>
+<th>Patient</th>
+<th>Mobile</th>
+<th>Email</th>
+<th>Age</th>
+<th>CheckIn</th>
+<th>CheckOut</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="rows"></tbody>
 </table>
 
 <script>
-async function loadPatients(){
-  try {
-    const res = await fetch('/api/infoGet');
-    const data = await res.json();
-    const tbody = document.getElementById('rows');
-    tbody.innerHTML = '';
+const dOnly = v => v ? v.split('T')[0] : '';
 
-    data.forEach(r => {
-      const checkoutDate = r.checkout_date ? new Date(r.checkout_date).toISOString().split('T')[0] : '';
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.id}</td>
-        <td><input class="inline-input" id="device-${r.id}" value="${r.device_id}"></td>
-        <td><input class="inline-input" id="name-${r.id}" value="${r.p_name}"></td>
-        <td><input class="inline-input" id="mobile-${r.id}" value="${r.ph_no}"></td>
-        <td><input class="inline-input" id="email-${r.id}" value="${r.email}"></td>
-        <td><input class="inline-input" id="age-${r.id}" type="number" value="${r.age}"></td>
-        <td><input class="inline-input" id="chin-${r.id}" type="date" value="${r.checkin_date}"></td>
-        <td><input class="inline-input" id="chout-${r.id}" type="date" value="${checkoutDate}"></td>
-        <td>
-          <button class="action-btn save-btn" onclick="saveRow(${r.id})">💾 Save</button>
-          <button class="action-btn delete-btn" onclick="deleteRow(${r.id})">🗑 Delete</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } catch(err){
-    console.error('Load patients error:', err);
-  }
+async function loadPatients(){
+  const res = await fetch('/api/infoGet');
+  const data = await res.json();
+  const tbody = document.getElementById('rows');
+  tbody.innerHTML = '';
+
+  data.forEach(r=>{
+    tbody.innerHTML += `
+<tr data-device="${r.device_id}">
+<td>${r.id}</td>
+<td><input value="${r.device_id}" disabled></td>
+<td><input class="pname inline-input" value="${r.p_name || ''}"></td>
+<td><input class="pmobile inline-input" value="${r.ph_no || ''}"></td>
+<td><input class="email inline-input" value="${r.email || ''}"></td>
+<td><input class="age inline-input" value="${r.age || ''}"></td>
+<td><input type="date" class="chin inline-input" value="${dOnly(r.checkin_date)}"></td>
+<td><input type="date" class="chout inline-input" value="${dOnly(r.checkout_date)}"></td>
+<td>
+  <button class="action-btn save" onclick="saveRow(this)">💾</button>
+  <button class="action-btn delete" onclick="deletePatient(${r.id})">🗑</button>
+</td>
+</tr>`;
+  });
 }
 
-async function saveRow(id){
+async function saveRow(btn){
+  const row = btn.closest('tr');
   const body = {
-    device_id: document.getElementById(`device-${id}`).value,
-    pname: document.getElementById(`name-${id}`).value,
-    pmobile: document.getElementById(`mobile-${id}`).value,
-    email: document.getElementById(`email-${id}`).value,
-    age: Number(document.getElementById(`age-${id}`).value),
-    chin: document.getElementById(`chin-${id}`).value,
-    chout: document.getElementById(`chout-${id}`).value
+    device_id: row.dataset.device,
+    pname: row.querySelector('.pname').value,
+    pmobile: row.querySelector('.pmobile').value,
+    email: row.querySelector('.email').value,
+    age: Number(row.querySelector('.age').value) || null,
+    chin: row.querySelector('.chin').value || null,
+    chout: row.querySelector('.chout').value || null
   };
+
   try {
-    const res = await fetch('/api/update', {
+    const res = await fetch('/api/update',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body)
+      body:JSON.stringify(body)
     });
-    const data = await res.json();
-    if(data.error){ alert('Update failed'); return; }
+
+    if(!res.ok) throw await res.json();
     loadPatients();
-  } catch(err){
-    console.error('Update error', err);
+  } catch(e){
+    console.error(e);
     alert('Update failed');
   }
 }
 
-async function deleteRow(id){
-  if(!confirm('Are you sure to delete this patient?')) return;
-  try {
-    await fetch('/api/infoDelete', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({id})
-    });
-    loadPatients();
-  } catch(err){
-    console.error('Delete error', err);
-  }
-}
-
-async function addRow(){
+async function addPatient(){
   const body = {
-    device_id: document.getElementById('new-device').value,
-    pname: document.getElementById('new-name').value,
-    pmobile: document.getElementById('new-mobile').value,
-    email: document.getElementById('new-email').value,
-    age: Number(document.getElementById('new-age').value),
-    chin: document.getElementById('new-chin').value,
-    chout: document.getElementById('new-chout').value
+    device_id: device_id.value,
+    pname: pname.value,
+    pmobile: pmobile.value,
+    email: email.value,
+    age: Number(age.value),
+    chin: chin.value
   };
-  if(!body.device_id || !body.pname){ alert('Device ID and Name required'); return; }
-  try {
-    await fetch('/api/add', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
-    clearNewRow();
-    loadPatients();
-  } catch(err){
-    console.error('Add error', err);
+
+  if(!body.device_id || !body.pname){
+    alert('Device ID & Patient Name required');
+    return;
   }
+
+  await fetch('/api/add',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  });
+
+  device_id.value=pname.value=pmobile.value=email.value=age.value=chin.value='';
+  loadPatients();
 }
 
-function clearNewRow(){
-  document.getElementById('new-device').value='';
-  document.getElementById('new-name').value='';
-  document.getElementById('new-mobile').value='';
-  document.getElementById('new-email').value='';
-  document.getElementById('new-age').value='';
-  document.getElementById('new-chin').value='';
-  document.getElementById('new-chout').value='';
+async function deletePatient(id){
+  if(!confirm('Delete patient?')) return;
+  await fetch('/api/infoDelete',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id})
+  });
+  loadPatients();
 }
 
 loadPatients();
