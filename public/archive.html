@@ -130,7 +130,7 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 <script>
 /* ====== LOAD ARCHIVE (GLOBAL FUNCTION) ====== */
 async function loadArchive() {
-  const search = document.getElementById('searchInput').value || '';
+  const search = document.getElementById('searchInput').value;
 
   try {
     const res = await fetch('/api/archiveGet?search=' + encodeURIComponent(search));
