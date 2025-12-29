@@ -139,19 +139,18 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 <script>
 async function loadArchive() {
   const search = document.getElementById('searchInput').value;
- const res = await fetch(`/api/archiveGet',
+ const res = await fetch(`/api/archiveGet',{
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ search  })
- 
-    
-    if(!res.ok){
+     });  
+   if(!res.ok){
       const text = await res.text();
       console.error('Server error:', text);
       alert('Failed to fetch archive data');
       return;
     }
-
+   const data = await res.json();
     const data = await res.json();
     const tbody = document.getElementById('archiveRows');
     tbody.innerHTML = '';
