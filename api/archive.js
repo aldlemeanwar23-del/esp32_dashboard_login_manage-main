@@ -16,11 +16,11 @@ export default async function handler(req, res) {
     // نقل البيانات من informations و sensor_data إلى sensor_data_archive
     await sql`
       INSERT INTO "sensor_data_archive" (
-        device_id, p_name, ph_no, email, age, checkin_date, checkout_date, timestamp, heartrate, spo2
+        device_id, p_name, ph_no, email, age, checkin_date, checkout_date, heartrate, spo2, timestamp
       )
       SELECT 
         s.device_id, i.p_name, i.ph_no, i.email, i.age, i.checkin_date, i.checkout_date,
-        s.timestamp, s.heartrate, s.spo2
+        s.heartrate, s.spo2, s.timestamp
       FROM "sensor_data" s
       JOIN "informations" i ON s.device_id = i.device_id
       WHERE s.device_id = ${device_id}
