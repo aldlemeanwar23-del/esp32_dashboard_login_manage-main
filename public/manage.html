@@ -34,6 +34,11 @@ input {
   width:100%;
 }
 
+input[disabled] {
+  background:#020617;
+  opacity:.6;
+}
+
 button {
   padding:6px 10px;
   border-radius:6px;
@@ -103,9 +108,7 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 </table>
 
 <script>
-function dateOnly(v){
-  return v ? v.split('T')[0] : '';
-}
+const dOnly = v => v ? v.split('T')[0] : '';
 
 async function loadPatients(){
   const res = await fetch('/api/infoGet');
@@ -115,32 +118,35 @@ async function loadPatients(){
 
   data.forEach(r=>{
     tbody.innerHTML += `
-<tr id="row-${r.id}">
+<tr data-device="${r.device_id}">
 <td>${r.id}</td>
-<td><input class="device_id" value="${r.device_id}"></td>
-<td><input class="pname" value="${r.p_name}"></td>
-<td><input class="pmobile" value="${r.ph_no}"></td>
-<td><input class="email" value="${r.email}"></td>
-<td><input class="age" value="${r.age}"></td>
-<td><input type="date" class="chin" value="${dateOnly(r.checkin_date)}"></td>
-<td><input type="date" class="chout" value="${dateOnly(r.checkout_date)}"></td>
+<td><input value="${r.device_id}" disabled></td>
+
+<td><input class="pname" value="${r.p_name || ''}"></td>
+<td><input class="pmobile" value="${r.ph_no || ''}"></td>
+<td><input class="email" value="${r.email || ''}"></td>
+<td><input class="age" value="${r.age || ''}"></td>
+
+<td><input type="date" class="chin" value="${dOnly(r.checkin_date)}"></td>
+<td><input type="date" class="chout" value="${dOnly(r.checkout_date)}"></td>
+
 <td>
-  <button class="save" onclick="saveRow(${r.id})">💾</button>
+  <button class="save" onclick="saveRow(this)">💾</button>
   <button class="delete" onclick="deletePatient(${r.id})">🗑</button>
 </td>
 </tr>`;
   });
 }
 
-async function saveRow(id){
-  const row = document.getElementById(`row-${id}`);
+async function saveRow(btn){
+  const row = btn.closest('tr');
 
   const body = {
-    device_id: row.querySelector('.device_id').value,
+    device_id: row.dataset.device,
     pname: row.querySelector('.pname').value,
     pmobile: row.querySelector('.pmobile').value,
     email: row.querySelector('.email').value,
-    age: Number(row.querySelector('.age').value),
+    age: Number(row.querySelector('.age').value) || null,
     chin: row.querySelector('.chin').value || null,
     chout: row.querySelector('.chout').value || null
   };
@@ -154,8 +160,8 @@ async function saveRow(id){
 
     if(!res.ok) throw await res.json();
     loadPatients();
-  } catch(err){
-    console.error(err);
+  } catch(e){
+    console.error(e);
     alert('Update failed');
   }
 }
