@@ -134,15 +134,9 @@ async function loadArchive() {
 
   try {
     const res = await fetch('/api/archiveGet?search=' + encodeURIComponent(search));
+    const text = await res.text();
 
-    if (!res.ok) {
-      const text = await res.text();
-      console.error(text);
-      alert('Server error');
-      return;
-    }
-
-    const data = await res.json();
+    const data = text ? JSON.parse(text) : [];
     const tbody = document.getElementById('archiveRows');
     tbody.innerHTML = '';
 
@@ -169,6 +163,8 @@ async function loadArchive() {
     alert('Failed to load archive');
   }
 }
+
+
 
 /* تحميل البيانات عند فتح الصفحة */
 loadArchive();
