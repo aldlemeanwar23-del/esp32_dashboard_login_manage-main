@@ -1,9 +1,27 @@
 // archive.js
 import { neon } from "@neondatabase/serverless";
 const sql = neon(process.env.DATABASE_URL);
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
-export default async function archiveSensorData(req, res) {
   try {
+    const {
+      device_id,
+      pname,
+      pmobile,
+      email,
+      age,
+      chin,
+      chout
+    } = req.body;
+
+    if (!device_id) {
+      return res.status(400).json({ error: "Missing device_id" });
+    }
+//export default async function archiveSensorData(req, res) {
+
     // 1️⃣ أرشفة بيانات المرضى الذين لديهم checkout_date محدد
     await sql`
       INSERT INTO sensor_data_archive (device_id, p_name, ph_no, email, age, checkin_date, checkout_date, timestamp, heartrate, spo2)
