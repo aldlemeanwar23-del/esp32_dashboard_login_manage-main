@@ -122,7 +122,7 @@ tr:hover {
 }
 
 input.inline-input {
-  width: 75%;
+  width: 100%;
   padding:6px 4px;
   border-radius:5px;
   border:1px solid var(--border);
@@ -286,7 +286,7 @@ async function archivePatient(btn){
   };
 
   try {
-    const res = await fetch('/api/update', { // استخدم نفس API للارشيف
+    const res = await fetch('/api/archive', { // استخدم نفس API للارشيف
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify(body)
