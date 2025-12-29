@@ -11,10 +11,8 @@ export default async function handler(req, res) {
     if (search) {
       // إذا تم تمرير اسم المريض، البحث عنه
       data = await sql`
-        SELECT s.id, s.device_id, s.heartrate, s.spo2, s.timestamp, i.p_name
-        FROM sensor_data_archive s
-        LEFT JOIN informations i ON i.device_id = s.device_id
-        WHERE i.p_name ILIKE ${'%' + search + '%'}
+       SELECT * FROM sensor_data_archive
+        WHERE p_name ILIKE ${'%' + search + '%'}
         ORDER BY s.timestamp DESC
       `;
     } 
