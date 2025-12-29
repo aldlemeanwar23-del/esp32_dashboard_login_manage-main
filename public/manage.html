@@ -16,6 +16,7 @@
   --btn-save: #22c55e;
   --btn-delete: #ef4444;
   --btn-add: #00bcd4;
+  --btn-archive: #f59e0b;
   --font: 'Segoe UI', Arial, sans-serif;
 }
 
@@ -145,6 +146,7 @@ button.action-btn:hover {
 }
 button.save { background: var(--btn-save); color:#020617; }
 button.delete { background: var(--btn-delete); color:#fff; }
+button.archive { background: var(--btn-archive); color:#020617; }
 
 @media (max-width: 768px) {
   table, thead, tbody, th, td, tr {
@@ -238,6 +240,7 @@ async function loadPatients(){
 <td data-label="Actions">
   <button class="action-btn save" onclick="saveRow(this)">💾</button>
   <button class="action-btn delete" onclick="deletePatient(${r.id})">🗑</button>
+  <button class="action-btn archive" onclick="archivePatient(this)">📦</button>
 </td>
 </tr>`;
   });
@@ -267,6 +270,34 @@ async function saveRow(btn){
   } catch(e){
     console.error(e);
     alert('Update failed');
+  }
+}
+
+async function archivePatient(btn){
+  const row = btn.closest('tr');
+  const body = {
+    device_id: row.dataset.device,
+    pname: row.querySelector('.pname').value,
+    pmobile: row.querySelector('.pmobile').value,
+    email: row.querySelector('.email').value,
+    age: Number(row.querySelector('.age').value) || null,
+    chin: row.querySelector('.chin').value || null,
+    chout: row.querySelector('.chout').value || null
+  };
+
+  try {
+    const res = await fetch('/api/update', { // استخدم نفس API للارشيف
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+
+    if(!res.ok) throw await res.json();
+    alert('Patient archived successfully');
+    loadPatients();
+  } catch(e){
+    console.error(e);
+    alert('Archiving failed');
   }
 }
 
@@ -302,7 +333,7 @@ async function deletePatient(id){
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({id})
   });
-  loadPatients();
+  loadPatients(); 
 }
 
 loadPatients();
