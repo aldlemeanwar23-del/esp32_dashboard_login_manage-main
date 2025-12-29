@@ -4,70 +4,156 @@
 <meta charset="UTF-8">
 <title>Manage Patients</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
-body {
-  background:#0a0f1a;
-  color:#fff;
-  font-family:Segoe UI;
-}
-h2 { text-align:center; color:#00ffff; margin:15px 0; }
+  /* =========================
+     General Styles
+     ========================= */
+  :root {
+    --primary: #0ea5e9;
+    --secondary: #00ffff;
+    --bg: #0a0f1a;
+    --card-bg: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.2);
+    --hover: rgba(0,255,255,0.2);
+    --btn-bg: #00ffff;
+    --btn-hover: #00bcd4;
+  }
 
-table {
-  width:95%;
-  margin:auto;
-  border-collapse:collapse;
-}
-th,td {
-  border:1px solid #00ffff44;
-  padding:6px;
-  text-align:center;
-}
-th { background:#001f2f; }
+  body {
+    margin:0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: var(--bg);
+    color: #fff;
+  }
 
-input {
-  background:#020617;
-  color:#fff;
-  border:1px solid #00ffff44;
-  border-radius:5px;
-  padding:4px;
-  width:100%;
-}
+  h2 {
+    text-align:center;
+    color: var(--secondary);
+    margin-top: 20px;
+    font-size: 28px;
+  }
 
-input[disabled] {
-  background:#020617;
-  opacity:.6;
-}
+  .top-bar {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    width:95%;
+    margin: 10px auto;
+    padding:10px 0;
+  }
 
-button {
-  padding:6px 10px;
-  border-radius:6px;
-  border:none;
-  cursor:pointer;
-  font-weight:bold;
-}
-.save { background:#22c55e; }
-.delete { background:#ef4444; color:#fff; }
+  .top-bar button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
 
-.form {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:10px;
-  width:95%;
-  margin:15px auto;
-}
+  .top-bar button:hover {
+    background: var(--btn-hover);
+  }
 
-.top-bar {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  width:95%;
-  margin:auto;
-}
-.top-bar button { background:#00ffff; }
+  /* =========================
+     Form Styles
+     ========================= */
+  .form {
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:10px;
+    width:95%;
+    margin:20px auto 30px auto;
+  }
+
+  .form input {
+    padding:8px;
+    border-radius:6px;
+    border:1px solid var(--border);
+    background: var(--card-bg);
+    color:#fff;
+  }
+
+  .form input::placeholder {
+    color:#aaa;
+  }
+
+  .form button {
+    background: var(--btn-bg);
+    cursor:pointer;
+    font-weight:bold;
+    transition: background 0.2s;
+  }
+
+  .form button:hover {
+    background: var(--btn-hover);
+  }
+
+  /* =========================
+     Table Styles
+     ========================= */
+  table {
+    width:95%;
+    margin:auto;
+    border-collapse:collapse;
+    background: var(--card-bg);
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 0 15px rgba(0,255,255,0.2);
+  }
+
+  th, td {
+    border-bottom: 1px solid var(--border);
+    padding:10px;
+    text-align:center;
+    font-size:14px;
+  }
+
+  th {
+    background:#001f2f;
+    font-size:15px;
+  }
+
+  tr:hover {
+    background: var(--hover);
+  }
+
+  button.action-btn {
+    padding:5px 10px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:bold;
+    transition: transform 0.1s;
+  }
+
+  button.action-btn:hover {
+    transform: scale(1.05);
+  }
+
+  button.delete-btn { background:#ef4444; color:#fff; }
+  button.edit-btn { background:#facc15; color:#020617; }
+
+  input.inline-input {
+    width: 120px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border:1px solid var(--border);
+    background: var(--card-bg);
+    color:#fff;
+    text-align:center;
+  }
+
+  input.inline-input::-webkit-inner-spin-button,
+  input.inline-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
 </style>
 </head>
-
 <body>
 
 <script>
@@ -76,133 +162,140 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 
 <div class="top-bar">
   <h2>🧾 Patient Management</h2>
-  <button onclick="location.href='admin.html'">← Back</button>
+  <button onclick="location.href='admin.html'">← Back to Dashboard</button>
 </div>
 
-<!-- ADD PATIENT -->
 <div class="form">
   <input id="device_id" placeholder="Device ID">
   <input id="pname" placeholder="Patient Name">
   <input id="pmobile" placeholder="Mobile">
   <input id="email" placeholder="Email">
-  <input id="age" placeholder="Age">
-  <input id="chin" type="date">
-  <button onclick="addPatient()">Add Patient</button>
+  <input id="age" placeholder="Age" type="number">
+  <input id="chin" placeholder="CheckIn Date" type="date">
+  <input id="chout" placeholder="CheckOut Date" type="date">
+  <button onclick="addPatient()">Add</button>
 </div>
 
 <table>
-<thead>
-<tr>
-<th>ID</th>
-<th>Device</th>
-<th>Patient</th>
-<th>Mobile</th>
-<th>Email</th>
-<th>Age</th>
-<th>CheckIn</th>
-<th>CheckOut</th>
-<th>Action</th>
-</tr>
-</thead>
-<tbody id="rows"></tbody>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Device ID</th>
+      <th>Patient Name</th>
+      <th>Mobile</th>
+      <th>Email</th>
+      <th>Age</th>
+      <th>CheckIn Date</th>
+      <th>CheckOut Date</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="rows"></tbody>
 </table>
 
 <script>
-const dOnly = v => v ? v.split('T')[0] : '';
-
 async function loadPatients(){
-  const res = await fetch('/api/infoGet');
-  const data = await res.json();
-  const tbody = document.getElementById('rows');
-  tbody.innerHTML = '';
+  try {
+    const res = await fetch('/api/infoGet');
+    const data = await res.json();
+    const tbody = document.getElementById('rows');
+    tbody.innerHTML = '';
 
-  data.forEach(r=>{
-    tbody.innerHTML += `
-<tr data-device="${r.device_id}">
+    data.forEach(r => {
+      const checkoutDate = r.checkout_date ? new Date(r.checkout_date).toISOString().split('T')[0] : '';
+      tbody.innerHTML += `
+<tr>
 <td>${r.id}</td>
-<td><input value="${r.device_id}" disabled></td>
-
-<td><input class="pname" value="${r.p_name || ''}"></td>
-<td><input class="pmobile" value="${r.ph_no || ''}"></td>
-<td><input class="email" value="${r.email || ''}"></td>
-<td><input class="age" value="${r.age || ''}"></td>
-
-<td><input type="date" class="chin" value="${dOnly(r.checkin_date)}"></td>
-<td><input type="date" class="chout" value="${dOnly(r.checkout_date)}"></td>
-
+<td>${r.device_id}</td>
+<td>${r.p_name}</td>
+<td>${r.ph_no}</td>
+<td>${r.email}</td>
+<td>${r.age}</td>
+<td>${r.checkin_date}</td>
+<td><input type="date" class="inline-input" value="${checkoutDate}" id="chout-${r.id}"></td>
 <td>
-  <button class="save" onclick="saveRow(this)">💾</button>
-  <button class="delete" onclick="deletePatient(${r.id})">🗑</button>
+  <button class="action-btn edit-btn" onclick="saveRow(${r.id},'${r.device_id}')">💾 Save</button>
+  <button class="action-btn delete-btn" onclick="deletePatient(${r.id})">🗑 Delete</button>
 </td>
 </tr>`;
-  });
-}
-
-async function saveRow(btn){
-  const row = btn.closest('tr');
-
-  const body = {
-    device_id: row.dataset.device,
-    pname: row.querySelector('.pname').value,
-    pmobile: row.querySelector('.pmobile').value,
-    email: row.querySelector('.email').value,
-    age: Number(row.querySelector('.age').value) || null,
-    chin: row.querySelector('.chin').value || null,
-    chout: row.querySelector('.chout').value || null
-  };
-
-  try {
-    const res = await fetch('/api/update',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(body)
     });
-
-    if(!res.ok) throw await res.json();
-    loadPatients();
-  } catch(e){
-    console.error(e);
-    alert('Update failed');
+  } catch(err){
+    console.error('Load patients error:', err);
   }
 }
 
 async function addPatient(){
   const body = {
-    device_id: device_id.value,
-    pname: pname.value,
-    pmobile: pmobile.value,
-    email: email.value,
-    age: Number(age.value),
-    chin: chin.value
+    device_id: document.getElementById('device_id').value,
+    pname: document.getElementById('pname').value,
+    pmobile: document.getElementById('pmobile').value,
+    email:document.getElementById('email').value,
+    age: Number(document.getElementById('age').value),
+    chin: document.getElementById('chin').value,
+    chout: document.getElementById('chout').value
   };
 
-  if(!body.device_id || !body.pname){
-    alert('Device ID & Patient Name required');
+  if(!body.device_id || !body.pname) {
+    alert('Device ID and Patient Name are required!');
     return;
   }
 
-  await fetch('/api/add',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(body)
-  });
+  try {
+    await fetch('/api/add', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    clearForm();
+    loadPatients();
+  } catch(err){
+    console.error('Add patient error:', err);
+  }
+}
 
-  device_id.value=pname.value=pmobile.value=email.value=age.value=chin.value='';
-  loadPatients();
+async function saveRow(id,device_id){
+  const checkoutInput = document.getElementById(`chout-${id}`);
+  const body = { device_id, chout: checkoutInput.value };
+  try {
+    const res = await fetch('/api/update', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if(data.error) { console.error(data.error); alert('Update failed'); return; }
+    loadPatients();
+  } catch(err){
+    console.error('Update error:', err);
+    alert('Update failed');
+  }
 }
 
 async function deletePatient(id){
-  if(!confirm('Delete patient?')) return;
-  await fetch('/api/infoDelete',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({id})
-  });
-  loadPatients();
+  if(!confirm('Are you sure you want to delete this patient?')) return;
+  try {
+    await fetch('/api/infoDelete', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id})
+    });
+    loadPatients();
+  } catch(err){
+    console.error('Delete patient error:', err);
+  }
+}
+
+function clearForm(){
+  document.getElementById('device_id').value='';
+  document.getElementById('pname').value='';
+  document.getElementById('pmobile').value='';
+  document.getElementById('email').value='';
+  document.getElementById('age').value='';
+  document.getElementById('chin').value='';
+  document.getElementById('chout').value='';
 }
 
 loadPatients();
 </script>
-
 </body>
 </html>
