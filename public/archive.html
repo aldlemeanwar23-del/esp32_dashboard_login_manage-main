@@ -191,6 +191,8 @@ async function loadArchive(query){
           <td>${r.heartrate}</td>
           <td>${r.spo2}</td>
           <td>${new Date(r.timestamp).toLocaleString()}</td>
+          <td>${r.checkin_date}</td>
+          <td>${r.checkout_date}</td>
         </tr>
       `;
     });
