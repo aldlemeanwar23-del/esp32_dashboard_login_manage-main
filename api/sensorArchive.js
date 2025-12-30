@@ -1,75 +1,34 @@
-// sensorArchive.js
+// server.js أو api.js
 const express = require('express');
-const router = express.Router();
-const db = require('./db'); // استبدل بموديل قاعدة البيانات الخاص بك
-const ExcelJS = require('exceljs');
+const app = express();
+const cors = require('cors');
+const pool = require('./db'); // اتصالك بقاعدة البيانات (مثلاً MySQL/PostgreSQL)
 
-/**
- * GET /api/sensorArchive?device=DEVICE_ID
- * يرجع ملف Excel يحتوي على جميع بيانات المستشعر للجهاز
- */
-router.get('/', async (req, res) => {
+app.use(cors());
+app.use(express.json());
+
+// Endpoint لإرجاع جميع بيانات الـ sensor_data لجهاز معين
+app.get('/api/sensorData', async (req, res) => {
   const device = req.query.device;
-  if (!device) {
-    return res.status(400).json({ error: 'Device ID is required' });
-  }
+  if(!device) return res.status(400).json({error: 'Device ID required'});
 
   try {
-    // جلب البيانات من جدول sensor_data_archive
-    const [rows] = await db.execute(
-      `SELECT id, device_id, heartrate, spo2, timestamp
-       FROM sensor_data_archive
+    // جلب جميع البيانات من جدول sensor_data المرتبطة بالجهاز
+    const [rows] = await pool.query(
+      `SELECT time AS timestamp, heartrate, spo2, temperature, blood_pressure
+       FROM sensor_data
        WHERE device_id = ?
-       ORDER BY timestamp ASC`,
-      [device]
+       ORDER BY time ASC`, [device]
     );
 
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'No archive data found for this device' });
-    }
+    // إعادة البيانات كـ JSON
+    res.json(rows);
 
-    // إنشاء ملف Excel
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Sensor Data');
-
-    // إنشاء رأس الجدول
-    sheet.columns = [
-      { header: 'ID', key: 'id', width: 10 },
-      { header: 'Device ID', key: 'device_id', width: 15 },
-      { header: 'Heart Rate', key: 'heartrate', width: 15 },
-      { header: 'SpO₂', key: 'spo2', width: 10 },
-      { header: 'Timestamp', key: 'timestamp', width: 25 },
-    ];
-
-    // إضافة الصفوف
-    rows.forEach(row => {
-      sheet.addRow({
-        id: row.id,
-        device_id: row.device_id,
-        heartrate: row.heartrate,
-        spo2: row.spo2,
-        timestamp: row.timestamp,
-      });
-    });
-
-    // إعداد الهيدر للتحميل
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=sensor_archive_${device}.xlsx`
-    );
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    );
-
-    // إرسال الملف مباشرة
-    await workbook.xlsx.write(res);
-    res.end();
-
-  } catch (err) {
-    console.error('Error exporting sensor archive to Excel:', err);
-    res.status(500).json({ error: 'Failed to export sensor archive' });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({error: 'Server error'});
   }
 });
 
-module.exports = router;
+// مثال لبدء السيرفر
+app.listen(3000, () => console.log('Server running on port 3000'));
