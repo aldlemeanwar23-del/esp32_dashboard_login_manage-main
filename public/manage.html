@@ -53,9 +53,7 @@ h2 {
   cursor: pointer;
   transition: 0.2s;
 }
-.top-bar button:hover {
-  background: var(--btn-add);
-}
+.top-bar button:hover { background: var(--btn-add); }
 
 .form {
   display:grid;
@@ -120,13 +118,24 @@ input.inline-input {
   text-align:center;
 }
 
+/* Device ID smaller */
+input.device-id {
+  width: 70px;
+  text-align:center;
+}
+
+td.actions {
+  display:flex;
+  justify-content:center;
+  gap:4px;
+}
+
 button.action-btn {
   padding:4px 8px;
   border:none;
   border-radius:6px;
   cursor:pointer;
   font-weight:bold;
-  margin:1px;
   transition: 0.1s;
 }
 button.action-btn:hover { transform: scale(1.05); }
@@ -184,27 +193,25 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 
 <script>
 const dOnly = v => v ? v.split('T')[0] : '';
-let existingDevices = [];
 
 async function loadPatients(){
   const res = await fetch('/api/infoGet');
   const data = await res.json();
   const tbody = document.getElementById('rows');
   tbody.innerHTML = '';
-  existingDevices = data.map(d=>d.device_id); // تخزين الأجهزة الموجودة
 
   data.forEach(r=>{
     tbody.innerHTML += `
 <tr data-device="${r.device_id}">
 <td data-label="ID">${r.id}</td>
-<td data-label="Device"><input value="${r.device_id}" disabled></td>
+<td data-label="Device"><input class="device-id" value="${r.device_id}" disabled></td>
 <td data-label="Patient"><input class="pname inline-input" value="${r.p_name || ''}"></td>
 <td data-label="Mobile"><input class="pmobile inline-input" value="${r.ph_no || ''}"></td>
 <td data-label="Email"><input class="email inline-input" value="${r.email || ''}"></td>
 <td data-label="Age"><input class="age inline-input" value="${r.age || ''}"></td>
 <td data-label="CheckIn"><input type="date" class="chin inline-input" value="${dOnly(r.checkin_date)}"></td>
 <td data-label="CheckOut"><input type="date" class="chout inline-input" value="${dOnly(r.checkout_date)}"></td>
-<td data-label="Actions">
+<td data-label="Actions" class="actions">
   <button class="action-btn save" onclick="saveRow(this)">💾</button>
   <button class="action-btn delete" onclick="deletePatient(${r.id})">🗑</button>
   <button class="action-btn archive" onclick="archivePatient('${r.device_id}')">📦</button>
@@ -231,7 +238,6 @@ async function saveRow(btn){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify(body)
     });
-
     if(!res.ok) throw await res.json();
     loadPatients();
     alert('Patient updated successfully');
@@ -263,14 +269,8 @@ async function archivePatient(device_id){
 }
 
 async function addPatient(){
-  const deviceVal = device_id.value.trim();
-  if(existingDevices.includes(deviceVal)){
-    alert('Cannot add: Patient already exists for this device!');
-    return;
-  }
-
   const body = {
-    device_id: deviceVal,
+    device_id: device_id.value,
     pname: pname.value,
     pmobile: pmobile.value,
     email: email.value,
