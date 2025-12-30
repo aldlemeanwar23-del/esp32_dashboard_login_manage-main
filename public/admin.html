@@ -49,13 +49,12 @@ body {
   border:1px solid var(--border);
   border-radius:16px;
   padding:20px;
-  min-height:300px;
+  min-height:320px;
   position:relative;
   display:flex;
   flex-direction:column;
 }
 
-/* ⭐ تمييز الجهاز المتصل */
 .device-card.connected {
   border-color:#22c55e;
   box-shadow:0 0 18px rgba(34,197,94,.45);
@@ -77,11 +76,23 @@ body {
 .status {
   flex:1;
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
-  font-size:20px;
+  gap:12px;
+  font-size:18px;
   font-weight:700;
   color:#22c55e;
+}
+
+.add-btn{
+  padding:8px 14px;
+  border:none;
+  border-radius:8px;
+  background:#0ea5e9;
+  color:#fff;
+  font-weight:700;
+  cursor:pointer;
 }
 
 .content {
@@ -112,6 +123,54 @@ canvas {
   font-weight:700;
   cursor:pointer;
 }
+
+/* ===== MODAL ===== */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:1000;
+}
+.modal.show{ display:flex; }
+
+.modal-box{
+  width:320px;
+  background:#020617;
+  border-radius:16px;
+  padding:20px;
+  border:1px solid var(--border);
+}
+.modal-box h3{
+  text-align:center;
+  color:var(--primary);
+}
+.modal-box input{
+  width:100%;
+  margin:6px 0;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:#0c111b;
+  color:#fff;
+}
+.modal-actions{
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
+.modal-actions button{
+  flex:1;
+  padding:8px;
+  border:none;
+  border-radius:8px;
+  font-weight:700;
+  cursor:pointer;
+}
+.save{ background:#22c55e; }
+.cancel{ background:#ef4444; color:#fff; }
 </style>
 </head>
 
@@ -128,6 +187,23 @@ canvas {
 
 <div class="container" id="devices"></div>
 
+<!-- ===== MODAL ===== -->
+<div id="modal" class="modal">
+  <div class="modal-box">
+    <h3>Add Patient</h3>
+    <input id="m_device" disabled>
+    <input id="m_name" placeholder="Patient Name">
+    <input id="m_mobile" placeholder="Mobile">
+    <input id="m_email" placeholder="Email">
+    <input id="m_age" placeholder="Age">
+    <input id="m_chin" type="date">
+    <div class="modal-actions">
+      <button class="save" onclick="savePatient()">Save</button>
+      <button class="cancel" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 function logout(){
   localStorage.removeItem('auth');
@@ -137,22 +213,19 @@ function logout(){
 const devices = ['max1','max2','max3','max4'];
 const charts = {};
 const container = document.getElementById('devices');
+let currentDevice='';
 
-/* =======================
-   Fetch Patients Table
-   ======================= */
+/* Fetch patients */
 async function fetchPatients(){
   try{
     const res = await fetch('/api/infoGet');
-    return await res.json(); // [{device_id,p_name}]
+    return await res.json();
   }catch{
     return [];
   }
 }
 
-/* =======================
-   Create Cards
-   ======================= */
+/* Create cards */
 async function createCards(){
   const patients = await fetchPatients();
 
@@ -174,13 +247,15 @@ async function createCards(){
         <div class="data"><span>SpO₂</span><b id="${d}-spo">--</b></div>
         <canvas id="${d}-hrChart"></canvas>
         <canvas id="${d}-spoChart"></canvas>
-        <button class="open-btn"
-          onclick="location.href='device.html?device=${d}'">
+        <button class="open-btn" onclick="location.href='device.html?device=${d}'">
           Open Device
         </button>
       </div>
 
-      <div class="status">الجهاز متاح</div>
+      <div class="status">
+        الجهاز متاح
+        <button class="add-btn" onclick="openModal('${d}')">➕ Add Patient</button>
+      </div>
     `;
     container.appendChild(card);
 
@@ -199,96 +274,73 @@ async function createCards(){
   });
 }
 
-/* =======================
-   Clear Card (Offline)
-   ======================= */
+/* Modal */
+function openModal(device){
+  currentDevice=device;
+  m_device.value=device;
+  m_name.value=m_mobile.value=m_email.value=m_age.value=m_chin.value='';
+  modal.classList.add('show');
+}
+function closeModal(){ modal.classList.remove('show'); }
+
+async function savePatient(){
+  if(!m_name.value) return alert('Patient name required');
+
+  await fetch('/api/add',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      device_id:currentDevice,
+      pname:m_name.value,
+      pmobile:m_mobile.value,
+      email:m_email.value,
+      age:Number(m_age.value),
+      chin:m_chin.value
+    })
+  });
+  closeModal();
+}
+
+/* Offline */
 function clearCard(device){
   const card=document.getElementById(device);
   card.classList.remove('connected');
-
   card.querySelector('.content').style.display='none';
   card.querySelector('.status').style.display='flex';
   document.getElementById(`${device}-patient`).style.display='none';
-
-  charts[device].hr.data.labels=[];
-  charts[device].hr.data.datasets[0].data=[];
-  charts[device].spo.data.labels=[];
-  charts[device].spo.data.datasets[0].data=[];
-  charts[device].hr.update();
-  charts[device].spo.update();
-
-  document.getElementById(`${device}-hr`).innerText='--';
-  document.getElementById(`${device}-spo`).innerText='--';
 }
 
-/* =======================
-   Show Data (Online)
-   ======================= */
+/* Online */
 function showData(device,row){
   const card=document.getElementById(device);
   card.classList.add('connected');
-
   card.querySelector('.status').style.display='none';
   card.querySelector('.content').style.display='flex';
   document.getElementById(`${device}-patient`).style.display='block';
 
   document.getElementById(`${device}-hr`).innerText=row.heartrate;
   document.getElementById(`${device}-spo`).innerText=row.spo2;
-
-  const hrC=charts[device].hr;
-  const spoC=charts[device].spo;
-
-  hrC.data.labels.push('');
-  hrC.data.datasets[0].data.push(row.heartrate);
-  spoC.data.labels.push('');
-  spoC.data.datasets[0].data.push(row.spo2);
-
-  if(hrC.data.labels.length>15){
-    hrC.data.labels.shift();
-    hrC.data.datasets[0].data.shift();
-    spoC.data.labels.shift();
-    spoC.data.datasets[0].data.shift();
-  }
-
-  hrC.update();
-  spoC.update();
 }
 
-/* =======================
-   Load Device
-   ======================= */
+/* Load device */
 async function loadDevice(device){
   try{
     const res=await fetch(`/api/sensor?device=${device}`);
     const data=await res.json();
-
-    if(!Array.isArray(data)||data.length===0){
-      clearCard(device);
-      return;
-    }
+    if(!data.length) return clearCard(device);
 
     const last=data[data.length-1];
-    const age=Date.now()-new Date(last.time).getTime();
-
-    if(age>10000){
-      clearCard(device);
-      return;
-    }
+    if(Date.now()-new Date(last.time).getTime()>10000)
+      return clearCard(device);
 
     showData(device,last);
-
   }catch{
     clearCard(device);
   }
 }
 
-function loadAll(){
-  devices.forEach(loadDevice);
-}
+function loadAll(){ devices.forEach(loadDevice); }
 
-/* =======================
-   Init
-   ======================= */
 createCards().then(()=>{
   loadAll();
   setInterval(loadAll,2000);
