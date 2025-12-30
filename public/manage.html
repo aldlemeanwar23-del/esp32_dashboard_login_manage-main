@@ -228,7 +228,7 @@ async function archivePatient(device_id){
     if(!archiveResult.success) return alert('Archive failed: ' + (archiveResult.error || 'Unknown error'));
 
     // جلب جميع القياسات الحالية من جدول sensor_data
-    const resData = await fetch(`/api/sensorData?device=${device_id}`);
+    const resData = await fetch(`/api/sensorArchive?device=${device_id}`);
     const sensorData = await resData.json(); // [{timestamp, heartrate, spo2, ...}, ...]
 
     // إنشاء ملف Excel
