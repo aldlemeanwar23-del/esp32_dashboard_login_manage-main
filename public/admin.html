@@ -4,242 +4,295 @@
 <meta charset="UTF-8">
 <title>Admin Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-:root{
-  --bg:#0c111b;
-  --card:#020617;
+:root {
+  --primary:#0ea5e9;
+  --bg:#020617;
+  --card:rgba(255,255,255,.08);
   --border:rgba(255,255,255,.15);
-  --primary:#00ffff;
-  --connected:#22c55e;
-  --available:#64748b;
 }
-
-body{
+body {
   margin:0;
-  font-family:'Segoe UI',Arial;
+  font-family:Segoe UI, Arial;
   background:var(--bg);
-  color:#fff;
+  color:#e5e7eb;
 }
-
-header{
-  padding:15px 20px;
-  background:#001f2f;
-  color:var(--primary);
-  font-size:22px;
+.top-bar {
   display:flex;
   justify-content:space-between;
   align-items:center;
+  padding:18px 30px;
+  border-bottom:1px solid var(--border);
 }
-
-.container{
-  padding:20px;
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:15px;
-}
-
-/* Device Card */
-.device-card{
-  background:var(--card);
-  border-radius:14px;
-  padding:15px;
-  border:2px solid var(--available);
-  transition:.3s;
-}
-
-.device-card.connected{
-  border-color:var(--connected);
-  box-shadow:0 0 15px rgba(34,197,94,.4);
-}
-
-.device-card h3{
-  color:var(--primary);
-  margin-bottom:10px;
-}
-
-.status{
-  font-weight:bold;
-  margin-bottom:10px;
-}
-
-.status.connected{ color:var(--connected); }
-.status.available{ color:#94a3b8; }
-
-.card-actions{
-  display:flex;
-  gap:10px;
-  margin-top:10px;
-}
-
-.card-actions button{
-  flex:1;
-  padding:8px;
+.top-bar h2 { margin:0; color:var(--primary); }
+.top-bar button {
+  padding:8px 16px;
   border:none;
-  border-radius:6px;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.add-btn{ background:#0ea5e9; color:#020617; }
-.details-btn{ background:#00ffff; color:#020617; }
-
-/* ===== MODAL ===== */
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.6);
-  display:none;
-  justify-content:center;
-  align-items:center;
-  z-index:1000;
-}
-
-.modal.show{ display:flex; }
-
-.modal-box{
-  width:320px;
-  background:#020617;
-  border-radius:14px;
-  padding:20px;
-  border:1px solid var(--border);
-}
-
-.modal-box h3{
-  text-align:center;
-  color:var(--primary);
-  margin-bottom:10px;
-}
-
-.modal-box input{
-  width:100%;
-  margin:6px 0;
-  padding:8px;
-  border-radius:6px;
-  border:1px solid var(--border);
-  background:#0c111b;
+  border-radius:8px;
+  background:var(--primary);
   color:#fff;
-}
-
-.modal-actions{
-  display:flex;
-  gap:10px;
-  margin-top:10px;
-}
-
-.modal-actions button{
-  flex:1;
-  padding:8px;
-  border:none;
-  border-radius:6px;
-  font-weight:bold;
+  font-weight:600;
   cursor:pointer;
 }
-.save{ background:#22c55e; }
-.cancel{ background:#ef4444; color:#fff; }
+
+.container {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:20px;
+  padding:30px;
+}
+
+.device-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:20px;
+  min-height:300px;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ⭐ تمييز الجهاز المتصل */
+.device-card.connected {
+  border-color:#22c55e;
+  box-shadow:0 0 18px rgba(34,197,94,.45);
+}
+
+.device-card h3 {
+  margin:0 0 6px;
+  color:var(--primary);
+  font-size:20px;
+}
+
+.patient-name {
+  display:none;
+  font-size:16px;
+  color:#00ffff;
+  margin-bottom:10px;
+}
+
+.status {
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  font-weight:700;
+  color:#22c55e;
+}
+
+.content {
+  display:none;
+  flex-direction:column;
+  flex:1;
+}
+
+.data {
+  display:flex;
+  justify-content:space-between;
+  margin:6px 0;
+}
+
+canvas {
+  height:80px !important;
+  margin-top:8px;
+}
+
+.open-btn {
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#22c55e;
+  color:#020617;
+  font-weight:700;
+  cursor:pointer;
+}
 </style>
 </head>
 
 <body>
 
-<script>
-if(localStorage.getItem('auth')!=='1') location.href='/login.html';
-</script>
-
-<header>
-  <span>📊 Admin Dashboard</span>
-  <button onclick="location.href='manage.html'">Patients</button>
-</header>
-
-<div class="container" id="devices"></div>
-
-<!-- ===== MODAL ===== -->
-<div id="addModal" class="modal">
-  <div class="modal-box">
-    <h3>Add Patient</h3>
-
-    <input id="m_device" disabled>
-    <input id="m_name" placeholder="Patient Name">
-    <input id="m_mobile" placeholder="Mobile">
-    <input id="m_email" placeholder="Email">
-    <input id="m_age" placeholder="Age">
-    <input id="m_chin" type="date">
-
-    <div class="modal-actions">
-      <button class="save" onclick="savePatient()">Save</button>
-      <button class="cancel" onclick="closeModal()">Cancel</button>
-    </div>
+<div class="top-bar">
+  <h2>🩺 Admin Dashboard</h2>
+  <div>
+    <button onclick="location.href='archive.html'">View Archive</button>
+    <button onclick="location.href='manage.html'">Patients</button>
+    <button onclick="logout()">Logout</button>
   </div>
 </div>
 
-<script>
-let currentDevice='';
+<div class="container" id="devices"></div>
 
-/* Load Devices */
-async function loadDevices(){
-  const res = await fetch('/api/devices');
-  const devices = await res.json();
-  const box = document.getElementById('devices');
-  box.innerHTML='';
+<script>
+function logout(){
+  localStorage.removeItem('auth');
+  location.href='login.html';
+}
+
+const devices = ['max1','max2','max3','max4'];
+const charts = {};
+const container = document.getElementById('devices');
+
+/* =======================
+   Fetch Patients Table
+   ======================= */
+async function fetchPatients(){
+  try{
+    const res = await fetch('/api/infoGet');
+    return await res.json(); // [{device_id,p_name}]
+  }catch{
+    return [];
+  }
+}
+
+/* =======================
+   Create Cards
+   ======================= */
+async function createCards(){
+  const patients = await fetchPatients();
 
   devices.forEach(d=>{
-    const connected = d.connected;
-    box.innerHTML+=`
-      <div class="device-card ${connected?'connected':''}">
-        <h3>${d.device_id}</h3>
-        <div class="status ${connected?'connected':'available'}">
-          ${connected?'Connected':'Device Available'}
-        </div>
+    const p = patients.find(x=>x.device_id===d);
 
-        <div class="card-actions">
-          ${
-            connected
-            ? `<button class="details-btn" onclick="location.href='device.html?device=${d.device_id}'">Details</button>`
-            : `<button class="add-btn" onclick="openModal('${d.device_id}')">➕ Add Patient</button>`
-          }
-        </div>
+    const card = document.createElement('div');
+    card.className='device-card';
+    card.id=d;
+
+    card.innerHTML=`
+      <h3>${d.toUpperCase()}</h3>
+      <div class="patient-name" id="${d}-patient">
+        Patient Name: ${p ? p.p_name : ''}
       </div>
+
+      <div class="content">
+        <div class="data"><span>Heart Rate</span><b id="${d}-hr">--</b></div>
+        <div class="data"><span>SpO₂</span><b id="${d}-spo">--</b></div>
+        <canvas id="${d}-hrChart"></canvas>
+        <canvas id="${d}-spoChart"></canvas>
+        <button class="open-btn"
+          onclick="location.href='device.html?device=${d}'">
+          Open Device
+        </button>
+      </div>
+
+      <div class="status">الجهاز متاح</div>
     `;
+    container.appendChild(card);
+
+    charts[d]={
+      hr:new Chart(document.getElementById(`${d}-hrChart`),{
+        type:'line',
+        data:{labels:[],datasets:[{data:[],borderColor:'#00ffff'}]},
+        options:{responsive:true,animation:false}
+      }),
+      spo:new Chart(document.getElementById(`${d}-spoChart`),{
+        type:'line',
+        data:{labels:[],datasets:[{data:[],borderColor:'#ff00ff'}]},
+        options:{responsive:true,animation:false}
+      })
+    };
   });
 }
 
-/* Modal Logic */
-function openModal(device){
-  currentDevice=device;
-  m_device.value=device;
-  m_name.value=m_mobile.value=m_email.value=m_age.value=m_chin.value='';
-  addModal.classList.add('show');
+/* =======================
+   Clear Card (Offline)
+   ======================= */
+function clearCard(device){
+  const card=document.getElementById(device);
+  card.classList.remove('connected');
+
+  card.querySelector('.content').style.display='none';
+  card.querySelector('.status').style.display='flex';
+  document.getElementById(`${device}-patient`).style.display='none';
+
+  charts[device].hr.data.labels=[];
+  charts[device].hr.data.datasets[0].data=[];
+  charts[device].spo.data.labels=[];
+  charts[device].spo.data.datasets[0].data=[];
+  charts[device].hr.update();
+  charts[device].spo.update();
+
+  document.getElementById(`${device}-hr`).innerText='--';
+  document.getElementById(`${device}-spo`).innerText='--';
 }
 
-function closeModal(){
-  addModal.classList.remove('show');
-}
+/* =======================
+   Show Data (Online)
+   ======================= */
+function showData(device,row){
+  const card=document.getElementById(device);
+  card.classList.add('connected');
 
-async function savePatient(){
-  if(!m_name.value){
-    alert('Patient Name required');
-    return;
+  card.querySelector('.status').style.display='none';
+  card.querySelector('.content').style.display='flex';
+  document.getElementById(`${device}-patient`).style.display='block';
+
+  document.getElementById(`${device}-hr`).innerText=row.heartrate;
+  document.getElementById(`${device}-spo`).innerText=row.spo2;
+
+  const hrC=charts[device].hr;
+  const spoC=charts[device].spo;
+
+  hrC.data.labels.push('');
+  hrC.data.datasets[0].data.push(row.heartrate);
+  spoC.data.labels.push('');
+  spoC.data.datasets[0].data.push(row.spo2);
+
+  if(hrC.data.labels.length>15){
+    hrC.data.labels.shift();
+    hrC.data.datasets[0].data.shift();
+    spoC.data.labels.shift();
+    spoC.data.datasets[0].data.shift();
   }
 
-  await fetch('/api/add',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      device_id: currentDevice,
-      pname: m_name.value,
-      pmobile: m_mobile.value,
-      email: m_email.value,
-      age: Number(m_age.value),
-      chin: m_chin.value
-    })
-  });
-
-  closeModal();
-  loadDevices();
+  hrC.update();
+  spoC.update();
 }
 
-loadDevices();
-setInterval(loadDevices,3000);
+/* =======================
+   Load Device
+   ======================= */
+async function loadDevice(device){
+  try{
+    const res=await fetch(`/api/sensor?device=${device}`);
+    const data=await res.json();
+
+    if(!Array.isArray(data)||data.length===0){
+      clearCard(device);
+      return;
+    }
+
+    const last=data[data.length-1];
+    const age=Date.now()-new Date(last.time).getTime();
+
+    if(age>10000){
+      clearCard(device);
+      return;
+    }
+
+    showData(device,last);
+
+  }catch{
+    clearCard(device);
+  }
+}
+
+function loadAll(){
+  devices.forEach(loadDevice);
+}
+
+/* =======================
+   Init
+   ======================= */
+createCards().then(()=>{
+  loadAll();
+  setInterval(loadAll,2000);
+});
 </script>
 
 </body>
