@@ -5,9 +5,6 @@
 <title>Manage Patients</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- مكتبة SheetJS لإنشاء Excel -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
 <style>
 :root {
   --primary: #0ea5e9;
@@ -125,6 +122,7 @@ button.archive { background: var(--btn-archive); color:#020617; }
 </head>
 
 <body>
+
 <script>
 if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 </script>
@@ -207,61 +205,6 @@ async function saveRow(btn){
   }
 }
 
-async function archivePatient(device_id){
-  if(!confirm('Archive this patient and create Excel file?')) return;
-
-  try {
-    // 1️⃣ أرشفة المريض
-    const resArchive = await fetch('/api/archive',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ device_id })
-    });
-    const result = await resArchive.json();
-    if(!result.success) return alert('Archive failed: ' + (result.error || 'Unknown error'));
-
-    // 2️⃣ جلب بيانات المريض بعد الأرشفة
-    const resPatients = await fetch('/api/archiveGet');
-    const patients = await resPatients.json();
-    const patient = patients.find(p => p.device_id === device_id) || {};
-
-    // 3️⃣ جلب بيانات المستشعر
-    let sensorData = [];
-    try{
-      const resSensor = await fetch(`/api/sensorArchive?device=${device_id}`);
-      sensorData = await resSensor.json();
-    } catch(e){ console.warn('No sensor data', e); }
-
-    // 4️⃣ إنشاء ملف Excel
-    const wb = XLSX.utils.book_new();
-
-    // ورقة بيانات المريض
-    const wsPatient = XLSX.utils.aoa_to_sheet([
-      ['ID','Device','Patient','Mobile','Email','Age','CheckIn','CheckOut','Spo2','Heart Rate'],
-      [patient.id, patient.device_id, patient.p_name, patient.ph_no, patient.email, patient.age, patient.checkin_date, patient.checkout_date,patient.spo2,patient.heartrate]
-    ]);
-    XLSX.utils.book_append_sheet(wb, wsPatient, 'Patient Info');
-
-    // ورقة بيانات المستشعر
-    if(sensorData.length>0){
-      const wsSensor = XLSX.utils.json_to_sheet(sensorData);
-      XLSX.utils.book_append_sheet(wb, wsSensor, 'Sensor Data');
-    } else {
-      const wsSensor = XLSX.utils.aoa_to_sheet([['No sensor data available']]);
-      XLSX.utils.book_append_sheet(wb, wsSensor, 'Sensor Data');
-    }
-
-    XLSX.writeFile(wb, `Archive_${device_id}.xlsx`);
-
-    alert('Patient archived and Excel file created!');
-    loadPatients();
-
-  } catch(e){
-    console.error(e);
-    alert('Archive failed');
-  }
-}
-
 async function deletePatient(id){
   if(!confirm('Delete patient?')) return;
   await fetch('/api/infoDelete',{
@@ -270,6 +213,43 @@ async function deletePatient(id){
     body:JSON.stringify({id})
   });
   loadPatients(); 
+}
+
+// =====================================
+// Archive patient + generate Excel
+// =====================================
+async function archivePatient(device_id){
+  if(!confirm('Archive this patient and download Excel?')) return;
+  try {
+    const res = await fetch('/api/archive',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ device_id })
+    });
+
+    const contentType = res.headers.get('content-type');
+    if(contentType && contentType.includes('application/json')){
+      const result = await res.json();
+      alert('Archive failed: ' + (result.error || 'Unknown error'));
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sensor_archive_${device_id}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+
+    alert('Patient archived and Excel downloaded successfully');
+    loadPatients();
+  } catch(e){
+    console.error(e);
+    alert('Archive failed');
+  }
 }
 
 loadPatients();
