@@ -15,7 +15,6 @@
   --hover: rgba(0,255,255,0.1);
   --btn-save: #22c55e;
   --btn-delete: #ef4444;
-  --btn-add: #00bcd4;
   --btn-archive: #f59e0b;
   --font: 'Segoe UI', Arial, sans-serif;
 }
@@ -53,38 +52,7 @@ h2 {
   cursor: pointer;
   transition: 0.2s;
 }
-.top-bar button:hover { background: var(--btn-add); }
-
-.form {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:10px;
-  width:95%;
-  margin:15px auto 25px auto;
-}
-.form input {
-  padding:8px;
-  border-radius:6px;
-  border:1px solid var(--border);
-  background:#020617;
-  color:#fff;
-  text-align:center;
-  font-size:14px;
-}
-.form input:focus {
-  border-color: var(--secondary);
-  outline:none;
-}
-.form button {
-  background: var(--btn-add);
-  color:#020617;
-  font-weight:bold;
-  border-radius:6px;
-  cursor:pointer;
-  font-size:14px;
-  transition: 0.2s;
-}
-.form button:hover { opacity:0.85; }
+.top-bar button:hover { background: var(--btn-archive); }
 
 table {
   width:95%;
@@ -164,15 +132,7 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
   <button onclick="location.href='admin.html'">← Back</button>
 </div>
 
-<div class="form">
-  <input id="device_id" placeholder="Device ID">
-  <input id="pname" placeholder="Patient Name">
-  <input id="pmobile" placeholder="Mobile">
-  <input id="email" placeholder="Email">
-  <input id="age" placeholder="Age">
-  <input id="chin" type="date">
-  <button onclick="addPatient()">Add Patient</button>
-</div>
+<!-- تم الغاء نموذج إضافة المريض -->
 
 <table>
 <thead>
@@ -266,31 +226,6 @@ async function archivePatient(device_id){
     console.error(e);
     alert('Archive failed');
   }
-}
-
-async function addPatient(){
-  const body = {
-    device_id: device_id.value,
-    pname: pname.value,
-    pmobile: pmobile.value,
-    email: email.value,
-    age: Number(age.value),
-    chin: chin.value
-  };
-
-  if(!body.device_id || !body.pname){
-    alert('Device ID & Patient Name required');
-    return;
-  }
-
-  await fetch('/api/add',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(body)
-  });
-
-  device_id.value=pname.value=pmobile.value=email.value=age.value=chin.value='';
-  loadPatients();
 }
 
 async function deletePatient(id){
