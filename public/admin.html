@@ -95,6 +95,11 @@ body {
   cursor:pointer;
 }
 
+.add-btn:disabled{
+  opacity:0.5;
+  cursor:not-allowed;
+}
+
 .content {
   display:none;
   flex-direction:column;
@@ -231,6 +236,7 @@ async function createCards(){
 
   devices.forEach(d=>{
     const p = patients.find(x=>x.device_id===d);
+    const isAdded = !!p; // true if device already has patient
 
     const card = document.createElement('div');
     card.className='device-card';
@@ -254,7 +260,9 @@ async function createCards(){
 
       <div class="status">
         الجهاز متاح
-        <button class="add-btn" onclick="openModal('${d}')">➕ Add Patient</button>
+        <button class="add-btn" onclick="openModal('${d}')" ${isAdded ? 'disabled' : ''}>
+          ➕ Add Patient
+        </button>
       </div>
     `;
     container.appendChild(card);
@@ -298,7 +306,11 @@ async function savePatient(){
       chin:m_chin.value
     })
   });
+
   closeModal();
+  // إعادة تحميل الكروت لتحديث حالة الزر بعد الإضافة
+  container.innerHTML='';
+  createCards();
 }
 
 /* Offline */
