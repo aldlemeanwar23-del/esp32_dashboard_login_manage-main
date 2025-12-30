@@ -115,7 +115,7 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 <div class="search-bar">
   <input id="searchInput" placeholder="Search by patient name">
   <button onclick="searchArchive()">Search</button>
-  <button onclick="toggleAll()">Show All</button>
+  <button id="toggleBtn" onclick="toggleAll()">Show All</button>
 </div>
 
 <table id="archiveTable" class="hidden">
@@ -142,21 +142,23 @@ async function searchArchive(){
     alert('Enter patient name');
     return;
   }
+  showingAll = false;
+  document.getElementById('toggleBtn').innerText = 'Show All';
   await loadArchive('?search=' + encodeURIComponent(name));
 }
 
 /* ===== SHOW / HIDE ALL ===== */
 async function toggleAll(){
+  const btn = document.getElementById('toggleBtn');
+
   if(showingAll){
     hideTable();
-    showingAll = false;
-   // event.target.innerText = 'Show All';
     btn.innerText = 'Show All';
+    showingAll = false;
   } else {
     await loadArchive('');
-    showingAll = true;
-   // event.target.innerText = 'Hide All';
     btn.innerText = 'Hide All';
+    showingAll = true;
   }
 }
 
