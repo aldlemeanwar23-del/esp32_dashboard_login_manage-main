@@ -221,7 +221,7 @@ async function archivePatient(device_id){
     if(!result.success) return alert('Archive failed: ' + (result.error || 'Unknown error'));
 
     // 2️⃣ جلب بيانات المريض بعد الأرشفة
-    const resPatients = await fetch('/api/infoGet');
+    const resPatients = await fetch('/api/archiveGet');
     const patients = await resPatients.json();
     const patient = patients.find(p => p.device_id === device_id) || {};
 
@@ -237,8 +237,8 @@ async function archivePatient(device_id){
 
     // ورقة بيانات المريض
     const wsPatient = XLSX.utils.aoa_to_sheet([
-      ['ID','Device','Patient','Mobile','Email','Age','CheckIn','CheckOut'],
-      [patient.id, patient.device_id, patient.p_name, patient.ph_no, patient.email, patient.age, patient.checkin_date, patient.checkout_date]
+      ['ID','Device','Patient','Mobile','Email','Age','CheckIn','CheckOut','Spo2','Heart Rate'],
+      [patient.id, patient.device_id, patient.p_name, patient.ph_no, patient.email, patient.age, patient.checkin_date, patient.checkout_date,patient.spo2,patient.heartrate]
     ]);
     XLSX.utils.book_append_sheet(wb, wsPatient, 'Patient Info');
 
