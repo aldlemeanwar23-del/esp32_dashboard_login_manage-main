@@ -5,7 +5,7 @@
 <title>Manage Patients</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- إضافة مكتبة SheetJS -->
+<!-- مكتبة SheetJS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
@@ -89,7 +89,6 @@ input.inline-input {
   text-align:center;
 }
 
-/* Device ID smaller */
 input.device-id {
   width: 70px;
   text-align:center;
@@ -208,39 +207,51 @@ async function saveRow(btn){
   }
 }
 
-// أرشفة المريض + إنشاء ملف Excel
+// أرشفة المريض + جميع قياسات الجهاز + إنشاء ملف Excel
 async function archivePatient(device_id){
   if(!confirm('Archive this patient and create Excel file?')) return;
 
   try {
-    // جلب بيانات المريض قبل الأرشفة
-    const resData = await fetch('/api/infoGet');
-    const patients = await resData.json();
+    // جلب بيانات المريض
+    const resPatients = await fetch('/api/infoGet');
+    const patients = await resPatients.json();
     const patient = patients.find(p => p.device_id === device_id);
     if(!patient) return alert('Patient not found');
 
-    // 1️⃣ أرشفة المريض
-    const resArchive = await fetch('/api/archive',{
+    // أرشفة البيانات على السيرفر
+    const resArchive = await fetch('/api/archive', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ device_id })
+      body:JSON.stringify({ device_id })
     });
-    const result = await resArchive.json();
-    if(!result.success) return alert('Archive failed: ' + (result.error || 'Unknown error'));
+    const archiveResult = await resArchive.json();
+    if(!archiveResult.success) return alert('Archive failed: ' + (archiveResult.error || 'Unknown error'));
 
-    // 2️⃣ إنشاء ملف Excel
+    // جلب جميع القياسات الحالية من جدول sensor_data
+    const resData = await fetch(`/api/sensorData?device=${device_id}`);
+    const sensorData = await resData.json(); // [{timestamp, heartrate, spo2, ...}, ...]
+
+    // إنشاء ملف Excel
     const wb = XLSX.utils.book_new();
-    const wsData = [
+
+    // بيانات المريض
+    const wsPatientData = [
       ['ID','Device','Patient','Mobile','Email','Age','CheckIn','CheckOut'],
       [patient.id, patient.device_id, patient.p_name, patient.ph_no, patient.email, patient.age, patient.checkin_date, patient.checkout_date]
     ];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    XLSX.utils.book_append_sheet(wb, ws, 'Patient');
+    const wsPatient = XLSX.utils.aoa_to_sheet(wsPatientData);
+    XLSX.utils.book_append_sheet(wb, wsPatient, 'Patient');
+
+    // بيانات القياسات
+    if(sensorData.length){
+      const wsSensorData = XLSX.utils.json_to_sheet(sensorData);
+      XLSX.utils.book_append_sheet(wb, wsSensorData, 'Sensor Data');
+    }
 
     // تحميل الملف
-    XLSX.writeFile(wb, `Patient_${patient.device_id}.xlsx`);
+    XLSX.writeFile(wb, `Archive_${device_id}.xlsx`);
 
-    alert('Patient archived and Excel created successfully');
+    alert('Patient and sensor data archived successfully!');
     loadPatients();
 
   } catch(e){
