@@ -151,10 +151,12 @@ async function toggleAll(){
     hideTable();
     showingAll = false;
     event.target.innerText = 'Show All';
+    btn.innerText = 'Show All';
   } else {
     await loadArchive('');
     showingAll = true;
     event.target.innerText = 'Hide All';
+    btn.innerText = 'Hide All';
   }
 }
 
