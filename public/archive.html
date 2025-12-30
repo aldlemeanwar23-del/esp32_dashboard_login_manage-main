@@ -47,10 +47,10 @@ body {
 
 .search-bar {
   width:95%;
-  margin:10px auto 20px auto;
+  margin:10px auto;
   display:flex;
-  justify-content:flex-end;
   gap:10px;
+  justify-content:flex-end;
 }
 
 .search-bar input {
@@ -69,10 +69,6 @@ body {
   color:#fff;
   font-weight:bold;
   cursor:pointer;
-}
-
-.search-bar button.secondary {
-  background:#334155;
 }
 
 table {
@@ -99,12 +95,8 @@ tr:hover {
   background:var(--hover);
 }
 
-.placeholder {
-  width:95%;
-  margin:40px auto;
-  text-align:center;
-  opacity:0.7;
-  font-size:16px;
+.hidden {
+  display:none;
 }
 </style>
 </head>
@@ -123,14 +115,10 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 <div class="search-bar">
   <input id="searchInput" placeholder="Search by patient name">
   <button onclick="searchArchive()">Search</button>
-  <button class="secondary" id="toggleBtn" onclick="toggleAll()">Show All</button>
+  <button onclick="toggleAll()">Show All</button>
 </div>
 
-<div id="placeholder" class="placeholder">
-  🔍 Search by patient name or click "Show All"
-</div>
-
-<table id="archiveTable" style="display:none">
+<table id="archiveTable" class="hidden">
 <thead>
 <tr>
   <th>ID</th>
@@ -145,75 +133,81 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 </table>
 
 <script>
-let allVisible = false;
+let showingAll = false;
 
-/* دالة عامة لجلب البيانات */
-async function fetchArchive(url) {
-  const tbody = document.getElementById('archiveRows');
-  const table = document.getElementById('archiveTable');
-  const placeholder = document.getElementById('placeholder');
-
-  const res = await fetch(url);
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : [];
-
-  tbody.innerHTML = '';
-  table.style.display = 'table';
-  placeholder.style.display = 'none';
-
-  if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="6">No data found</td></tr>`;
+/* ===== SEARCH BY PATIENT NAME ===== */
+async function searchArchive(){
+  const name = document.getElementById('searchInput').value.trim();
+  if(!name){
+    alert('Enter patient name');
     return;
   }
-
-  data.forEach(r => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${r.id}</td>
-        <td>${r.device_id}</td>
-        <td>${r.p_name || ''}</td>
-        <td>${r.heartrate}</td>
-        <td>${r.spo2}</td>
-        <td>${new Date(r.timestamp).toLocaleString()}</td>
-      </tr>
-    `;
-  });
+  await loadArchive('?search=' + encodeURIComponent(name));
 }
 
-/* البحث بالاسم */
-function searchArchive() {
-  const search = document.getElementById('searchInput').value.trim();
-  if (!search) {
-    alert('Please enter patient name');
-    return;
-  }
-
-  allVisible = false;
-  document.getElementById('toggleBtn').innerText = 'Show All';
-
-  fetchArchive('/api/archiveGet?search=' + encodeURIComponent(search));
-}
-
-/* زر إظهار / إخفاء الكل */
-function toggleAll() {
-  const table = document.getElementById('archiveTable');
-  const placeholder = document.getElementById('placeholder');
-  const btn = document.getElementById('toggleBtn');
-
-  if (allVisible) {
-    // إخفاء البيانات
-    table.style.display = 'none';
-    placeholder.style.display = 'block';
-    btn.innerText = 'Show All';
-    allVisible = false;
+/* ===== SHOW / HIDE ALL ===== */
+async function toggleAll(){
+  if(showingAll){
+    hideTable();
+    showingAll = false;
+    event.target.innerText = 'Show All';
   } else {
-    // إظهار كل البيانات
-    document.getElementById('searchInput').value = '';
-    fetchArchive('/api/archiveGet');
-    btn.innerText = 'Hide All';
-    allVisible = true;
+    await loadArchive('');
+    showingAll = true;
+    event.target.innerText = 'Hide All';
   }
 }
+
+/* ===== LOAD ARCHIVE ===== */
+async function loadArchive(query){
+  try {
+    const res = await fetch('/api/archiveGet' + query);
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : [];
+
+    const tbody = document.getElementById('archiveRows');
+    const table = document.getElementById('archiveTable');
+
+    tbody.innerHTML = '';
+    table.classList.remove('hidden');
+
+    if(!data.length){
+      tbody.innerHTML = `<tr><td colspan="6">No archived data</td></tr>`;
+      return;
+    }
+
+    data.forEach(r=>{
+      tbody.innerHTML += `
+        <tr>
+          <td>${r.id}</td>
+          <td>${r.device_id}</td>
+          <td>${r.p_name || ''}</td>
+          <td>${r.heartrate}</td>
+          <td>${r.spo2}</td>
+          <td>${new Date(r.timestamp).toLocaleString()}</td>
+        </tr>
+      `;
+    });
+
+  } catch(e){
+    console.error(e);
+    alert('Failed to load archive');
+  }
+}
+
+/* ===== HIDE TABLE ===== */
+function hideTable(){
+  document.getElementById('archiveTable').classList.add('hidden');
+  document.getElementById('archiveRows').innerHTML = '';
+}
+
+/* ===== ENTER KEY SEARCH ===== */
+document.getElementById('searchInput').addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    searchArchive();
+  }
+});
 </script>
 
 </body>
