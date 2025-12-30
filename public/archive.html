@@ -71,6 +71,10 @@ body {
   cursor:pointer;
 }
 
+.search-bar button.secondary {
+  background:#334155;
+}
+
 table {
   width:95%;
   margin:auto;
@@ -118,11 +122,12 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 
 <div class="search-bar">
   <input id="searchInput" placeholder="Search by patient name">
-  <button onclick="loadArchive()">Search</button>
+  <button onclick="searchArchive()">Search</button>
+  <button class="secondary" onclick="loadAllArchive()">Show All</button>
 </div>
 
 <div id="placeholder" class="placeholder">
-  🔍 Please search by patient name to view archived data
+  🔍 Search by patient name or click "Show All"
 </div>
 
 <table id="archiveTable" style="display:none">
@@ -140,19 +145,13 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 </table>
 
 <script>
-async function loadArchive() {
-  const search = document.getElementById('searchInput').value.trim();
+async function fetchArchive(url) {
   const tbody = document.getElementById('archiveRows');
   const table = document.getElementById('archiveTable');
   const placeholder = document.getElementById('placeholder');
 
-  if (!search) {
-    alert('Please enter patient name');
-    return;
-  }
-
   try {
-    const res = await fetch('/api/archiveGet?search=' + encodeURIComponent(search));
+    const res = await fetch(url);
     const text = await res.text();
     const data = text ? JSON.parse(text) : [];
 
@@ -161,7 +160,7 @@ async function loadArchive() {
     placeholder.style.display = 'none';
 
     if (!data.length) {
-      tbody.innerHTML = `<tr><td colspan="6">No results found</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6">No data found</td></tr>`;
       return;
     }
 
@@ -182,6 +181,22 @@ async function loadArchive() {
     console.error(err);
     alert('Failed to load archive');
   }
+}
+
+/* بحث بالاسم */
+function searchArchive() {
+  const search = document.getElementById('searchInput').value.trim();
+  if (!search) {
+    alert('Please enter patient name');
+    return;
+  }
+  fetchArchive('/api/archiveGet?search=' + encodeURIComponent(search));
+}
+
+/* عرض جميع البيانات */
+function loadAllArchive() {
+  document.getElementById('searchInput').value = '';
+  fetchArchive('/api/archiveGet');
 }
 </script>
 
