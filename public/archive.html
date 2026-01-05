@@ -5,6 +5,9 @@
 <title>Archived Sensor Data</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- SheetJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <style>
 :root {
   --primary:#0ea5e9;
@@ -29,11 +32,10 @@ body {
   display:flex;
   justify-content:space-between;
   align-items:center;
+  gap:10px;
 }
 
-.top-bar h2 {
-  color:var(--secondary);
-}
+.top-bar h2 { color:var(--secondary); }
 
 .top-bar button {
   padding:8px 16px;
@@ -87,17 +89,10 @@ th,td {
   border-bottom:1px solid var(--border);
 }
 
-th {
-  background:#001f2f;
-}
+th { background:#001f2f; }
+tr:hover { background:var(--hover); }
 
-tr:hover {
-  background:var(--hover);
-}
-
-.hidden {
-  display:none;
-}
+.hidden { display:none; }
 </style>
 </head>
 
@@ -109,7 +104,10 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 
 <div class="top-bar">
   <h2>📦 Archive</h2>
-  <button onclick="location.href='admin.html'">← Back</button>
+  <div>
+    <button onclick="exportExcel()">📥 Export Excel</button>
+    <button onclick="location.href='admin.html'">← Back</button>
+  </div>
 </div>
 
 <div class="search-bar">
@@ -127,8 +125,8 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
   <th>Heart Rate</th>
   <th>SpO₂</th>
   <th>Date</th>
-  <th>CheckIn Date</th>
-  <th>CheckOut Date</th>
+  <th>CheckIn</th>
+  <th>CheckOut</th>
 </tr>
 </thead>
 <tbody id="archiveRows"></tbody>
@@ -136,23 +134,20 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 
 <script>
 let showingAll = false;
+let currentArchiveData = [];
 
-/* ===== SEARCH BY PATIENT NAME ===== */
+/* ===== SEARCH ===== */
 async function searchArchive(){
   const name = document.getElementById('searchInput').value.trim();
-  if(!name){
-    alert('Enter patient name');
-    return;
-  }
+  if(!name) return alert('Enter patient name');
   showingAll = false;
   document.getElementById('toggleBtn').innerText = 'Show All';
   await loadArchive('?search=' + encodeURIComponent(name));
 }
 
-/* ===== SHOW / HIDE ALL ===== */
+/* ===== TOGGLE ALL ===== */
 async function toggleAll(){
   const btn = document.getElementById('toggleBtn');
-
   if(showingAll){
     hideTable();
     btn.innerText = 'Show All';
@@ -171,6 +166,8 @@ async function loadArchive(query){
     const text = await res.text();
     const data = text ? JSON.parse(text) : [];
 
+    currentArchiveData = data;
+
     const tbody = document.getElementById('archiveRows');
     const table = document.getElementById('archiveTable');
 
@@ -178,7 +175,7 @@ async function loadArchive(query){
     table.classList.remove('hidden');
 
     if(!data.length){
-      tbody.innerHTML = `<tr><td colspan="6">No archived data</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8">No archived data</td></tr>`;
       return;
     }
 
@@ -191,10 +188,9 @@ async function loadArchive(query){
           <td>${r.heartrate}</td>
           <td>${r.spo2}</td>
           <td>${new Date(r.timestamp).toLocaleString()}</td>
-          <td>${r.checkin_date}</td>
-          <td>${r.checkout_date}</td>
-        </tr>
-      `;
+          <td>${r.checkin_date || ''}</td>
+          <td>${r.checkout_date || ''}</td>
+        </tr>`;
     });
 
   } catch(e){
@@ -203,18 +199,42 @@ async function loadArchive(query){
   }
 }
 
-/* ===== HIDE TABLE ===== */
+/* ===== EXPORT EXCEL ===== */
+function exportExcel(){
+  if(!currentArchiveData.length){
+    alert('No data to export');
+    return;
+  }
+
+  const ws = XLSX.utils.json_to_sheet(
+    currentArchiveData.map(r=>({
+      ID: r.id,
+      Device: r.device_id,
+      Patient: r.p_name,
+      HeartRate: r.heartrate,
+      SpO2: r.spo2,
+      Date: r.timestamp,
+      CheckIn: r.checkin_date,
+      CheckOut: r.checkout_date
+    }))
+  );
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Archive');
+
+  XLSX.writeFile(wb, `Sensor_Archive_${Date.now()}.xlsx`);
+}
+
+/* ===== HIDE ===== */
 function hideTable(){
   document.getElementById('archiveTable').classList.add('hidden');
   document.getElementById('archiveRows').innerHTML = '';
+  currentArchiveData = [];
 }
 
-/* ===== ENTER KEY SEARCH ===== */
+/* ===== ENTER SEARCH ===== */
 document.getElementById('searchInput').addEventListener('keydown', e=>{
-  if(e.key === 'Enter'){
-    e.preventDefault();
-    searchArchive();
-  }
+  if(e.key === 'Enter') searchArchive();
 });
 </script>
 
