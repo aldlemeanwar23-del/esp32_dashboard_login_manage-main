@@ -105,7 +105,7 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
 <div class="top-bar">
   <h2>📦 Archive</h2>
   <div>
-    <button onclick="exportExcel()">📥 Export Excel</button>
+  
     <button onclick="location.href='admin.html'">← Back</button>
   </div>
 </div>
@@ -114,6 +114,7 @@ if(localStorage.getItem('auth')!=='1') location.href='/login.html';
   <input id="searchInput" placeholder="Search by patient name">
   <button onclick="searchArchive()">Search</button>
   <button id="toggleBtn" onclick="toggleAll()">Show All</button>
+  <button onclick="exportExcel()">📥 Export Excel</button>
 </div>
 
 <table id="archiveTable" class="hidden">
