@@ -324,15 +324,42 @@ function clearCard(device){
 }
 
 /* Online */
-function showData(device,row){
-  const card=document.getElementById(device);
+function showData(device, row) {
+  const card = document.getElementById(device);
   card.classList.add('connected');
-  card.querySelector('.status').style.display='none';
-  card.querySelector('.content').style.display='flex';
-  document.getElementById(`${device}-patient`).style.display='block';
 
-  document.getElementById(`${device}-hr`).innerText=row.heartrate;
-  document.getElementById(`${device}-spo`).innerText=row.spo2;
+  card.querySelector('.status').style.display = 'none';
+  card.querySelector('.content').style.display = 'flex';
+  document.getElementById(`${device}-patient`).style.display = 'block';
+
+  document.getElementById(`${device}-hr`).innerText = row.heartrate;
+  document.getElementById(`${device}-spo`).innerText = row.spo2;
+
+  const hrChart = charts[device].hr;
+  const spoChart = charts[device].spo;
+
+  // إضافة البيانات
+  hrChart.data.labels.push('');
+  hrChart.data.datasets[0].data.push(Number(row.heartrate));
+
+  spoChart.data.labels.push('');
+  spoChart.data.datasets[0].data.push(Number(row.spo2));
+
+  // تحديد آخر 15 قراءة فقط
+  if (hrChart.data.labels.length > 15) {
+    hrChart.data.labels.shift();
+    hrChart.data.datasets[0].data.shift();
+    spoChart.data.labels.shift();
+    spoChart.data.datasets[0].data.shift();
+  }
+
+  // ⭐⭐ الحل الأساسي ⭐⭐
+  setTimeout(() => {
+    hrChart.resize();
+    spoChart.resize();
+    hrChart.update();
+    spoChart.update();
+  }, 50);
 }
 
 /* Load device */
