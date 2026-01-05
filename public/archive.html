@@ -237,7 +237,7 @@ function exportExcel(){
 
   XLSX.writeFile(
     wb,
-    `Archive_${sheetName}_${Date.now()}.xlsx`
+    `${sheetName}.xlsx`
   );
 }
 
