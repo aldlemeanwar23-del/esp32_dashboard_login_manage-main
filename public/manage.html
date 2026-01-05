@@ -208,55 +208,85 @@ async function saveRow(btn){
 }
 
 // أرشفة المريض + جميع قياسات الجهاز + إنشاء ملف Excel
+
 async function archivePatient(device_id){
-  if(!confirm('Archive this patient and create Excel file?')) return;
+  if(!confirm('Archive patient and download full Excel archive?')) return;
 
   try {
-    // جلب بيانات المريض
-    const resPatients = await fetch('/api/infoGet');
-    const patients = await resPatients.json();
+    /* =========================
+       1) جلب بيانات المريض
+       ========================= */
+    const pRes = await fetch('/api/infoGet');
+    const patients = await pRes.json();
     const patient = patients.find(p => p.device_id === device_id);
-    if(!patient) return alert('Patient not found');
-
-    // أرشفة البيانات على السيرفر
-    const resArchive = await fetch('/api/archive', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ device_id })
-    });
-    const archiveResult = await resArchive.json();
-    if(!archiveResult.success) return alert('Archive failed: ' + (archiveResult.error || 'Unknown error'));
-
-    // جلب جميع القياسات الحالية من جدول sensor_data
-    const resData = await fetch(`/api/sensorArchive?device=${device_id}`);
-    const sensorData = await resData.json(); // [{timestamp, heartrate, spo2, ...}, ...]
-
-    // إنشاء ملف Excel
-    const wb = XLSX.utils.book_new();
-
-    // بيانات المريض
-    const wsPatientData = [
-      ['ID','Device','Patient','Mobile','Email','Age','CheckIn','CheckOut'],
-      [patient.id, patient.device_id, patient.p_name, patient.ph_no, patient.email, patient.age, patient.checkin_date, patient.checkout_date]
-    ];
-    const wsPatient = XLSX.utils.aoa_to_sheet(wsPatientData);
-    XLSX.utils.book_append_sheet(wb, wsPatient, 'Patient');
-
-    // بيانات القياسات
-    if(sensorData.length){
-      const wsSensorData = XLSX.utils.json_to_sheet(sensorData);
-      XLSX.utils.book_append_sheet(wb, wsSensorData, 'Sensor Data');
+    if(!patient){
+      alert('Patient not found');
+      return;
     }
 
-    // تحميل الملف
-    XLSX.writeFile(wb, `Archive_${device_id}.xlsx`);
+    /* =========================
+       2) جلب جميع قياسات الجهاز
+       ========================= */
+    const sRes = await fetch(`/api/sensor?device=${device_id}`);
+    const sensorData = await sRes.json();
 
-    alert('Patient and sensor data archived successfully!');
+    if(!Array.isArray(sensorData) || sensorData.length === 0){
+      alert('No sensor data found for this device');
+      return;
+    }
+
+    /* =========================
+       3) إنشاء ملف Excel
+       ========================= */
+    const wb = XLSX.utils.book_new();
+
+    // 🔹 Sheet 1 : Patient Info
+    const patientSheet = XLSX.utils.json_to_sheet([{
+      ID: patient.id,
+      Device: patient.device_id,
+      Patient: patient.p_name,
+      Mobile: patient.ph_no,
+      Email: patient.email,
+      Age: patient.age,
+      CheckIn: patient.checkin_date,
+      CheckOut: patient.checkout_date
+    }]);
+    XLSX.utils.book_append_sheet(wb, patientSheet, 'Patient Info');
+
+    // 🔹 Sheet 2 : Sensor Data
+    const sensorSheet = XLSX.utils.json_to_sheet(
+      sensorData.map(r => ({
+        Time: r.time || r.timestamp,
+        HeartRate: r.heartrate,
+        SpO2: r.spo2
+      }))
+    );
+    XLSX.utils.book_append_sheet(wb, sensorSheet, 'Sensor Data');
+
+    // ⬇️ تحميل الملف فعليًا
+    XLSX.writeFile(wb, `Archive_${device_id}_${Date.now()}.xlsx`);
+
+    /* =========================
+       4) أرشفة البيانات في السيرفر
+       ========================= */
+    const aRes = await fetch('/api/archive',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ device_id })
+    });
+
+    const aResult = await aRes.json();
+    if(!aResult.success){
+      alert('Archive DB failed: ' + (aResult.error || ''));
+      return;
+    }
+
+    alert('Archive completed & Excel downloaded ✔');
     loadPatients();
 
-  } catch(e){
-    console.error(e);
-    alert('Archive failed');
+  } catch(err){
+    console.error(err);
+    alert('Archive failed (JS Error)');
   }
 }
 
