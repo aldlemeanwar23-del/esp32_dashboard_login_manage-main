@@ -200,30 +200,47 @@ async function loadArchive(query){
 }
 
 /* ===== EXPORT EXCEL ===== */
+<script>
 function exportExcel(){
   if(!currentArchiveData.length){
     alert('No data to export');
     return;
   }
 
-  const ws = XLSX.utils.json_to_sheet(
-    currentArchiveData.map(r=>({
-      ID: r.id,
-      Device: r.device_id,
-      Patient: r.p_name,
-      HeartRate: r.heartrate,
-      SpO2: r.spo2,
-      Date: r.timestamp,
-      CheckIn: r.checkin_date,
-      CheckOut: r.checkout_date
-    }))
-  );
+  /* تحديد اسم الشيت */
+  let sheetName = 'All_Patients';
 
+  const uniquePatients = [...new Set(
+    currentArchiveData.map(r => r.p_name).filter(Boolean)
+  )];
+
+  if(uniquePatients.length === 1){
+    sheetName = uniquePatients[0].replace(/[\\/*?:[\]]/g, '');
+  }
+
+  /* تجهيز البيانات */
+  const wsData = currentArchiveData.map(r => ({
+    ID: r.id,
+    Device: r.device_id,
+    Patient: r.p_name,
+    HeartRate: r.heartrate,
+    SpO2: r.spo2,
+    Date: new Date(r.timestamp).toLocaleString(),
+    CheckIn: r.checkin_date || '',
+    CheckOut: r.checkout_date || ''
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(wsData);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Archive');
 
-  XLSX.writeFile(wb, `Sensor_Archive_${Date.now()}.xlsx`);
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+  XLSX.writeFile(
+    wb,
+    `Archive_${sheetName}_${Date.now()}.xlsx`
+  );
 }
+</script>
 
 /* ===== HIDE ===== */
 function hideTable(){
