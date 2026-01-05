@@ -210,7 +210,7 @@ async function saveRow(btn){
 // أرشفة المريض + جميع قياسات الجهاز + إنشاء ملف Excel
 
 async function archivePatient(device_id){
-  if(!confirm('Archive patient and download full Excel archive?')) return;
+  if(!confirm('Archive patient ?')) return;
 
   try {
     /* =========================
@@ -235,37 +235,7 @@ async function archivePatient(device_id){
       return;
     }
 
-    /* =========================
-       3) إنشاء ملف Excel
-       ========================= */
-    const wb = XLSX.utils.book_new();
-
-    // 🔹 Sheet 1 : Patient Info
-    const patientSheet = XLSX.utils.json_to_sheet([{
-      ID: patient.id,
-      Device: patient.device_id,
-      Patient: patient.p_name,
-      Mobile: patient.ph_no,
-      Email: patient.email,
-      Age: patient.age,
-      CheckIn: patient.checkin_date,
-      CheckOut: patient.checkout_date
-    }]);
-    XLSX.utils.book_append_sheet(wb, patientSheet, 'Patient Info');
-
-    // 🔹 Sheet 2 : Sensor Data
-    const sensorSheet = XLSX.utils.json_to_sheet(
-      sensorData.map(r => ({
-        Time: r.time || r.timestamp,
-        HeartRate: r.heartrate,
-        SpO2: r.spo2
-      }))
-    );
-    XLSX.utils.book_append_sheet(wb, sensorSheet, 'Sensor Data');
-
-    // ⬇️ تحميل الملف فعليًا
-    XLSX.writeFile(wb, `Archive_${device_id}_${Date.now()}.xlsx`);
-
+   
     /* =========================
        4) أرشفة البيانات في السيرفر
        ========================= */
@@ -281,7 +251,7 @@ async function archivePatient(device_id){
       return;
     }
 
-    alert('Archive completed & Excel downloaded ✔');
+    alert('Archive completed');
     loadPatients();
 
   } catch(err){
